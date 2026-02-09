@@ -1,0 +1,187 @@
+/* ============================================
+   TABLET (900px)
+   ============================================ */
+
+@media (max-width: 1024px) {
+  .main {
+    padding: 30px;
+  }
+
+  .section-header h1 {
+    font-size: 32px;
+  }
+
+  .cards-grid,
+  .members-grid,
+  .projects-grid,
+  .research-grid,
+  .achievements-grid,
+  .gamedev-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  }
+
+  .recruitment-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 0;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    padding: 15px 20px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-height: auto;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    z-index: 100;
+  }
+
+  .logo-box {
+    margin: 0;
+    padding: 0;
+    border: none;
+    margin-right: 20px;
+  }
+
+  .logo {
+    width: 100px;
+  }
+
+  .dept-name {
+    display: none;
+  }
+
+  .nav-menu {
+    flex-direction: row;
+    overflow-x: auto;
+    flex-grow: 1;
+  }
+
+  .admin-btn {
+    margin: 0;
+    margin-left: auto;
+  }
+
+  .main {
+    padding: 25px;
+  }
+
+  .section-header h1 {
+    font-size: 28px;
+  }
+
+  .cards-grid,
+  .members-grid,
+  .projects-grid,
+  .research-grid,
+  .achievements-grid,
+  .gamedev-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .leads-mini {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================
+   MOBILE (600px)
+   ============================================ */
+
+@media (max-width: 768px) {
+  .section-header h1 {
+    font-size: 24px;
+  }
+
+  .section h2 {
+    font-size: 22px;
+  }
+
+  .main {
+    padding: 20px;
+  }
+
+  .modal-content {
+    width: 95%;
+    padding: 25px;
+  }
+
+  .category-tabs,
+  .project-filters,
+  .achievement-tabs {
+    flex-wrap: wrap;
+  }
+
+  .tab-btn,
+  .filter-btn {
+    padding: 8px 15px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 600px) {
+  .section-header h1 {
+    font-size: 20px;
+  }
+
+  .section h2 {
+    font-size: 18px;
+  }
+
+  .section h3 {
+    font-size: 16px;
+  }
+
+  .main {
+    padding: 15px;
+  }
+
+  .section {
+    margin-bottom: 30px;
+  }
+
+  .sidebar {
+    padding: 10px;
+  }
+
+  .nav-link {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .btn {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  .card,
+  .member-card,
+  .project-card {
+    padding: 15px !important;
+  }
+
+  .pfp {
+    width: 80px;
+    height: 80px;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .recruitment-container {
+    gap: 20px;
+  }
+}
