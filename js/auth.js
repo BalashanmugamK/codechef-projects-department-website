@@ -28,7 +28,7 @@ class AuthManager {
   }
 
   init() {
-    // Force hide all modals on initialization
+    // Initialize the auth manager
     this.hideAllModals();
     this.setupEventListeners();
     this.checkLoginStatus();
@@ -164,15 +164,20 @@ class AuthManager {
   }
 
   openAdminPanel() {
+    console.log('openAdminPanel called', { currentUser: this.currentUser });
     if (!this.currentUser) {
+      console.log('No current user - opening login');
       this.openLogin();
     } else {
+      console.log('User already logged in - opening admin panel');
       this.openAdmin();
     }
   }
 
   openLogin() {
+    console.log('openLogin called', { loginModal: this.loginModal });
     if (this.loginModal) {
+      console.log('Setting loginModal display to flex');
       this.loginModal.style.display = 'flex';
       // NO SCROLL LOCK - body can scroll
       this.loginModal.style.overflowY = 'auto';
@@ -196,18 +201,28 @@ class AuthManager {
   }
 
   openAdmin() {
+    console.log('openAdmin called', { adminModal: this.adminModal });
     if (this.adminModal) {
+      console.log('Opening admin modal');
       this.adminModal.style.display = 'flex';
+      this.adminModal.classList.add('active');
       // NO SCROLL LOCK - body can scroll
       this.adminModal.style.overflowY = 'auto';
       document.body.style.overflow = 'auto';
       document.body.style.position = 'static';
+      
+      // Initialize the admin panel if needed
+      if (window.adminPanel && typeof window.adminPanel.loadMembers === 'function') {
+        console.log('Reloading admin panel data');
+        window.adminPanel.loadMembers();
+      }
     }
   }
 
   closeAdmin() {
     if (this.adminModal) {
       this.adminModal.style.display = 'none';
+      this.adminModal.classList.remove('active');
       document.body.style.overflow = 'auto';
       document.body.style.position = 'static';
     }

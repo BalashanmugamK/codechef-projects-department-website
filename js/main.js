@@ -312,30 +312,77 @@ handleNavClick(e) {
     let html = '';
 
     if (type === 'members') {
-      html = data.map((member) => `
-        <div class="card member-card">
-          <img src="${member.photo}" alt="${member.name}" class="pfp" loading="lazy" onerror="this.src='https://via.placeholder.com/140/FF6B35/ffffff?text=${member.name.charAt(0)}'">
-          <h3>${member.name}</h3>
+      html = data.map((member, idx) => `
+        <div class="gamedev-card gamedev-member-card" style="animation-delay: ${idx * 0.1}s;">
+          <div class="gamedev-card-inner">
+            <div class="gamedev-card-avatar">
+              <img src="${member.photo}" alt="${member.name}" class="pfp" loading="lazy" onerror="this.src='https://via.placeholder.com/140/FF6B35/ffffff?text=${member.name.charAt(0)}'">
+              <div class="gamedev-card-overlay">
+                <span class="gamedev-badge">Developer</span>
+              </div>
+            </div>
+            <div class="gamedev-card-content">
+              <h3 class="gamedev-card-title">${member.name}</h3>
+              <p class="gamedev-card-role">Game Development</p>
+              <div class="gamedev-card-footer">
+                <span class="gamedev-card-stat">🎮 Active</span>
+              </div>
+            </div>
+          </div>
         </div>
       `).join('');
     } else if (type === 'projects') {
-      html = data.map((proj) => `
-        <div class="card">
-          <h3>${proj.title}</h3>
-          <a href="${proj.link}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="margin-top: 1rem; display: block; text-align: center;">View Project</a>
+      html = data.map((proj, idx) => `
+        <div class="gamedev-card gamedev-project-card" style="animation-delay: ${idx * 0.1}s;">
+          <div class="gamedev-card-header">
+            <span class="gamedev-project-icon">🎮</span>
+            <span class="gamedev-project-badge">Live</span>
+          </div>
+          <div class="gamedev-card-content">
+            <h3 class="gamedev-card-title">${proj.title}</h3>
+            <p class="gamedev-card-desc">Innovative game development project</p>
+            <div class="gamedev-card-actions">
+              <a href="${proj.link}" target="_blank" rel="noopener noreferrer" class="gamedev-btn gamedev-btn-primary">
+                <span>View on GitHub</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M7 17L17 7M17 7H7M17 7V17"></path>
+                </svg>
+              </a>
+            </div>
+          </div>
         </div>
       `).join('');
     } else if (type === 'tools') {
-      html = data.map((tool) => `
-        <div class="card" style="display: flex; align-items: center; justify-content: center; padding: 2rem; min-height: 150px;">
-          <strong style="text-align: center;">${tool}</strong>
+      const toolIcons = {
+        'Unity': '🎮',
+        'Godot': '🦆',
+        'Unreal Engine': '🚀',
+        'Custom C++ Engine': '⚙️'
+      };
+      html = data.map((tool, idx) => `
+        <div class="gamedev-card gamedev-tool-card gamedev-card-interactive" style="animation-delay: ${idx * 0.1}s;">
+          <div class="gamedev-tool-icon">${toolIcons[tool] || '🔧'}</div>
+          <h3 class="gamedev-card-title">${tool}</h3>
+          <div class="gamedev-card-hover-info">
+            <p style="font-size: 0.875rem; color: var(--text-secondary);">Professional development tool</p>
+          </div>
         </div>
       `).join('');
     } else if (type === 'events') {
-      html = data.map((event) => `
-        <div class="card">
-          <h3>${event.title}</h3>
-          <p>📅 ${event.date}</p>
+      html = data.map((event, idx) => `
+        <div class="gamedev-card gamedev-event-card" style="animation-delay: ${idx * 0.1}s;">
+          <div class="gamedev-event-header">
+            <span class="gamedev-event-badge">Upcoming</span>
+          </div>
+          <div class="gamedev-card-content">
+            <h3 class="gamedev-card-title">${event.title}</h3>
+            <div class="gamedev-event-meta">
+              <span class="gamedev-event-date">📅 ${event.date}</span>
+            </div>
+            <div class="gamedev-event-footer">
+              <button class="gamedev-btn gamedev-btn-sm gamedev-btn-outline">Learn More</button>
+            </div>
+          </div>
         </div>
       `).join('');
     }

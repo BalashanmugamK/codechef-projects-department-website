@@ -10,6 +10,16 @@ class AdminPanel {
     this.editContentForm = document.getElementById('editContentForm');
     this.addProjectForm = document.getElementById('addProjectForm');
     this.membersList = document.getElementById('membersList');
+    
+    console.log('AdminPanel initialized', {
+      adminTabs: this.adminTabs.length,
+      adminTabContents: this.adminTabContents.length,
+      addMemberForm: !!this.addMemberForm,
+      editContentForm: !!this.editContentForm,
+      addProjectForm: !!this.addProjectForm,
+      membersList: !!this.membersList
+    });
+    
     this.init();
   }
 
@@ -19,28 +29,44 @@ class AdminPanel {
   }
 
   setupEventListeners() {
+    console.log('Setting up admin event listeners');
+    
     // Tab switching
-    this.adminTabs.forEach((tab) => {
-      tab.addEventListener('click', (e) => this.switchTab(e));
-    });
+    if (this.adminTabs.length > 0) {
+      this.adminTabs.forEach((tab) => {
+        tab.addEventListener('click', (e) => this.switchTab(e));
+      });
+      console.log('✓ Admin tabs setup complete');
+    } else {
+      console.error('✗ No admin tabs found');
+    }
 
     // Form submissions
     if (this.addMemberForm) {
       this.addMemberForm.addEventListener('submit', (e) =>
         this.handleAddMember(e)
       );
+      console.log('✓ Add member form setup');
+    } else {
+      console.warn('⚠ Add member form not found');
     }
 
     if (this.editContentForm) {
       this.editContentForm.addEventListener('submit', (e) =>
         this.handleEditContent(e)
       );
+      console.log('✓ Edit content form setup');
+    } else {
+      console.warn('⚠ Edit content form not found');
     }
 
     if (this.addProjectForm) {
       this.addProjectForm.addEventListener('submit', (e) =>
         this.handleAddProject(e)
       );
+      console.log('✓ Add project form setup');
+    } else {
+      console.warn('⚠ Add project form not found');
     }
   }
 
@@ -326,7 +352,14 @@ class AdminPanel {
 let adminPanel;
 
 document.addEventListener('DOMContentLoaded', () => {
-  adminPanel = new AdminPanel();
-  // Make it globally accessible
-  window.enhancedAdminPanel = adminPanel;
+  console.log('DOMContentLoaded: Creating AdminPanel instance');
+  try {
+    adminPanel = new AdminPanel();
+    // Make it globally accessible
+    window.enhancedAdminPanel = adminPanel;
+    window.adminPanel = adminPanel;
+    console.log('✓ AdminPanel created successfully');
+  } catch (error) {
+    console.error('✗ Error creating AdminPanel:', error);
+  }
 });

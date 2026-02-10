@@ -425,6 +425,33 @@ a:hover, button:hover {
   box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
 }
 
+.btn-success {
+  background-color: var(--accent-success);
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.btn-success:hover {
+  background-color: #059669;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.btn-info {
+  background-color: var(--accent-info);
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-info:hover {
+  background-color: #2563eb;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+.btn-sm {
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: var(--font-size-xs);
+}
+
 .btn-lg {
   padding: var(--spacing-lg) var(--spacing-2xl);
   font-size: var(--font-size-base);
@@ -730,6 +757,68 @@ a:hover, button:hover {
   margin-top: var(--spacing-md);
 }
 
+/* Game Dev Section Special Styling */
+#gamedev {
+  position: relative;
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.05) 0%, rgba(102, 126, 234, 0.05) 100%);
+  border-radius: var(--radius-2xl);
+  margin: var(--spacing-3xl) auto;
+}
+
+#gamedev::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--gradient-primary);
+  border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+}
+
+#gamedev .section-title {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+#gamedev .section-title::after {
+  background: var(--gradient-primary);
+}
+
+#gamedev .tabs-container {
+  justify-content: center;
+  padding: var(--spacing-lg);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-2xl);
+}
+
+#gamedev .tab-btn {
+  background: transparent;
+  border: 2px solid var(--border-color);
+  transition: all var(--transition-base);
+}
+
+#gamedev .tab-btn:hover {
+  border-color: var(--accent-primary);
+  background: var(--accent-primary-light);
+  color: var(--accent-primary);
+  transform: translateY(-2px);
+}
+
+#gamedev .tab-btn.active {
+  background: var(--gradient-primary);
+  border-color: var(--accent-primary);
+  color: white;
+  box-shadow: 0 8px 20px rgba(255, 107, 53, 0.3);
+}
+
+#gamedev .gamedev-grid {
+  perspective: 1000px;
+}
+
 /* ============================================
    TENURE SELECTOR
    ============================================ */
@@ -880,6 +969,390 @@ a:hover, button:hover {
 }
 
 /* ============================================
+   GAME DEV CARDS - ENHANCED & INTERACTIVE
+   ============================================ */
+
+.gamedev-card {
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-lg);
+  transition: all var(--transition-base);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  animation: slideUpIn 0.6s ease-out forwards;
+  opacity: 0;
+}
+
+.gamedev-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--gradient-primary);
+  opacity: 0;
+  transition: opacity var(--transition-base);
+  z-index: -1;
+}
+
+.gamedev-card:hover {
+  border-color: var(--accent-primary);
+  box-shadow: 0 20px 50px rgba(255, 107, 53, 0.25);
+  transform: translateY(-12px);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 20px rgba(255, 107, 53, 0.3), 0 20px 50px rgba(255, 107, 53, 0.25);
+}
+
+.gamedev-card:hover::before {
+  opacity: 0.05;
+}
+
+@keyframes slideUpIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(255, 107, 53, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(255, 107, 53, 0.4);
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes iconPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* Member Cards */
+.gamedev-member-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  backdrop-filter: blur(10px);
+}
+
+.gamedev-member-card:hover {
+  border-color: var(--accent-secondary);
+  box-shadow: 0 0 25px rgba(255, 140, 66, 0.35), 0 20px 50px rgba(255, 107, 53, 0.25);
+}
+
+.gamedev-card-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.gamedev-card-avatar {
+  position: relative;
+  margin-bottom: var(--spacing-lg);
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.gamedev-card-avatar .pfp {
+  width: 120px;
+  height: 120px;
+  border: 4px solid var(--accent-primary);
+  box-shadow: 0 10px 30px rgba(255, 107, 53, 0.3);
+  transition: all var(--transition-base);
+}
+
+.gamedev-member-card:hover .gamedev-card-avatar .pfp {
+  transform: scale(1.1) rotate(-5deg);
+  box-shadow: 0 15px 40px rgba(255, 107, 53, 0.4);
+  border-color: var(--accent-secondary);
+}
+
+.gamedev-card-overlay {
+  position: absolute;
+  bottom: 10px;
+  right: -10px;
+  display: flex;
+  gap: var(--spacing-sm);
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+
+.gamedev-member-card:hover .gamedev-card-overlay {
+  opacity: 1;
+}
+
+.gamedev-card-content {
+  width: 100%;
+}
+
+.gamedev-card-title {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-sm) 0;
+  transition: color var(--transition-base);
+}
+
+.gamedev-member-card:hover .gamedev-card-title {
+  color: var(--accent-primary);
+}
+
+.gamedev-card-role {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-md) 0;
+}
+
+.gamedev-card-footer {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: center;
+  width: 100%;
+}
+
+.gamedev-card-stat {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: var(--accent-primary-light);
+  color: var(--accent-primary);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.gamedev-badge {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: var(--accent-primary);
+  color: white;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Project Cards */
+.gamedev-project-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.gamedev-project-card:hover {
+  border-color: var(--accent-info);
+  box-shadow: 0 0 25px rgba(59, 130, 246, 0.35), 0 20px 50px rgba(255, 107, 53, 0.2);
+}
+
+.gamedev-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-lg);
+  border-bottom: 2px solid var(--border-color);
+}
+
+.gamedev-project-icon {
+  font-size: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--transition-base);
+}
+
+.gamedev-project-card:hover .gamedev-project-icon {
+  transform: scale(1.2) rotate(10deg);
+}
+
+.gamedev-project-badge {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: linear-gradient(135deg, var(--accent-success), var(--accent-tertiary));
+  color: white;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+.gamedev-card-desc {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  margin: var(--spacing-md) 0;
+  line-height: 1.6;
+}
+
+.gamedev-card-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+}
+
+.gamedev-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 2px solid transparent;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  text-decoration: none;
+}
+
+.gamedev-btn-primary {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+}
+
+.gamedev-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 107, 53, 0.4);
+}
+
+.gamedev-btn-outline {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  background: transparent;
+}
+
+.gamedev-btn-outline:hover {
+  background: var(--accent-primary-light);
+}
+
+.gamedev-btn-sm {
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: var(--font-size-xs);
+}
+
+/* Tool Cards */
+.gamedev-tool-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--spacing-2xl) var(--spacing-lg);
+  min-height: 200px;
+  position: relative;
+}
+
+.gamedev-tool-card:hover {
+  border-color: var(--accent-warning);
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.35), 0 20px 50px rgba(255, 107, 53, 0.2);
+}
+
+.gamedev-tool-icon {
+  font-size: 4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--spacing-lg);
+  transition: all var(--transition-base);
+  filter: drop-shadow(0 4px 8px rgba(255, 107, 53, 0.2));
+}
+
+.gamedev-card-interactive:hover .gamedev-tool-icon {
+  transform: scale(1.3) translateY(-10px);
+  filter: drop-shadow(0 8px 15px rgba(255, 107, 53, 0.35));
+  animation: iconPulse 0.6s ease-in-out;
+}
+
+.gamedev-card-hover-info {
+  opacity: 0;
+  transition: opacity var(--transition-base);
+  margin-top: var(--spacing-md);
+}
+
+.gamedev-card-interactive:hover .gamedev-card-hover-info {
+  opacity: 1;
+}
+
+/* Event Cards */
+.gamedev-event-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-left: 4px solid var(--accent-primary);
+}
+
+.gamedev-event-card:hover {
+  border-left-color: var(--accent-success);
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.35), 0 20px 50px rgba(255, 107, 53, 0.2);
+}
+
+.gamedev-event-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--spacing-md);
+}
+
+.gamedev-event-badge {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: linear-gradient(135deg, var(--accent-info), var(--accent-primary));
+  color: white;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+.gamedev-event-meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin: var(--spacing-lg) 0;
+}
+
+.gamedev-event-date {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.gamedev-event-footer {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: auto;
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border-color);
+}
+
+/* ============================================
    TABS
    ============================================ */
 
@@ -986,7 +1459,7 @@ a:hover, button:hover {
 #adminModal,
 #userLoginModal,
 #userSignupModal {
-  display: none !important;
+  display: none;
 }
 
 .modal {
@@ -1092,11 +1565,11 @@ a:hover, button:hover {
 
 /* Admin Modal */
 .modal-admin {
-  display: none !important;
+  display: none;
 }
 
 .modal-admin.active {
-  display: flex !important;
+  display: flex;
 }
 
 .admin-modal-content {
