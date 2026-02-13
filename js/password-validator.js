@@ -13,7 +13,7 @@ class PasswordValidator {
   };
 
   // Special characters allowed
-  static SPECIAL_CHARS = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/g;
+  static SPECIAL_CHARS = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/;
 
   /**
    * Validate password and return strength details
