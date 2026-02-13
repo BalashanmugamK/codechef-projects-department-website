@@ -492,6 +492,7 @@
         </div>
 
         <div class="tabs-container">
+          <button class="tab-btn" data-type="all">All</button>
           <button class="tab-btn active" data-type="upcoming">Upcoming</button>
           <button class="tab-btn" data-type="past">Past</button>
         </div>
@@ -778,6 +779,42 @@
                   </svg>
                 </button>
               </div>
+              <!-- Password Strength Indicator -->
+              <div id="signupPasswordStrength" class="password-strength-container" style="display: none;">
+                <div class="password-strength-text">
+                  <span class="password-strength-label">Password Strength:</span>
+                  <span id="signupPasswordStrengthValue" class="password-strength-value weak">🔴 Weak</span>
+                </div>
+                <div class="password-strength-meter">
+                  <div class="password-strength-bar"></div>
+                  <div class="password-strength-bar"></div>
+                  <div class="password-strength-bar"></div>
+                  <div class="password-strength-bar"></div>
+                </div>
+                <div class="password-requirements">
+                  <div class="requirement-item unmet" id="signupReqLength">
+                    <span class="requirement-icon cross">✗</span>
+                    <span>8+ characters</span>
+                  </div>
+                  <div class="requirement-item unmet" id="signupReqUppercase">
+                    <span class="requirement-icon cross">✗</span>
+                    <span>Uppercase (A-Z)</span>
+                  </div>
+                  <div class="requirement-item unmet" id="signupReqLowercase">
+                    <span class="requirement-icon cross">✗</span>
+                    <span>Lowercase (a-z)</span>
+                  </div>
+                  <div class="requirement-item unmet" id="signupReqNumbers">
+                    <span class="requirement-icon cross">✗</span>
+                    <span>Numbers (0-9)</span>
+                  </div>
+                  <div class="requirement-item unmet" id="signupReqSpecial">
+                    <span class="requirement-icon cross">✗</span>
+                    <span>Special chars (!@#...)</span>
+                  </div>
+                </div>
+                <div id="signupPasswordFeedback" class="password-feedback hidden"></div>
+              </div>
             </div>
             <div class="form-group">
               <label for="confirmPassword">Confirm Password</label>
@@ -793,6 +830,11 @@
                     <line x1="1" y1="1" x2="23" y2="23"></line>
                   </svg>
                 </button>
+              </div>
+              <!-- Password Match Status -->
+              <div id="signupPasswordMatch" class="password-match-status">
+                <span class="password-match-icon">✓</span>
+                <span>Passwords match</span>
               </div>
             </div>
             <button type="submit" class="btn btn-primary btn-block">Create Account</button>
@@ -898,6 +940,7 @@
           <button class="admin-tab-btn active" data-tab="members">Members Management</button>
           <button class="admin-tab-btn" data-tab="content">Content Management</button>
           <button class="admin-tab-btn" data-tab="projects">Projects Management</button>
+          <button class="admin-tab-btn" data-tab="admin-accounts">Admin Accounts</button>
           <button class="admin-tab-btn" data-tab="settings">Settings</button>
 		  <button class="admin-tab-btn" data-tab="recruitment">Recruitment</button>
         </div>
@@ -972,11 +1015,174 @@
             </div>
           </div>
 
+          <!-- Admin Accounts Tab -->
+          <div class="admin-tab-content" data-tab="admin-accounts">
+            <div class="admin-section">
+              <h3>Add New Admin Account</h3>
+              <p style="color: var(--text-secondary); margin-bottom: 1rem;">Create a new admin account with strong password requirements.</p>
+              <form id="addAdminForm" class="admin-form">
+                <input type="email" id="adminEmail" placeholder="admin@example.com" name="email" required>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                  <label for="adminPassword">Password</label>
+                  <div class="password-field" style="margin-bottom: 0;">
+                    <input type="password" id="adminPassword" name="password" placeholder="••••••••" required>
+                    <button type="button" class="toggle-password-btn" onclick="togglePassword(event, 'adminPassword')">
+                      <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      <svg class="eye-off-icon" style="display: none;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                      </svg>
+                    </button>
+                  </div>
+                  <!-- Password Strength Indicator for Admin -->
+                  <div id="adminPasswordStrength" class="password-strength-container" style="display: none;">
+                    <div class="password-strength-text">
+                      <span class="password-strength-label">Password Strength:</span>
+                      <span id="adminPasswordStrengthValue" class="password-strength-value weak">🔴 Weak</span>
+                    </div>
+                    <div class="password-strength-meter">
+                      <div class="password-strength-bar"></div>
+                      <div class="password-strength-bar"></div>
+                      <div class="password-strength-bar"></div>
+                      <div class="password-strength-bar"></div>
+                    </div>
+                    <div class="password-requirements">
+                      <div class="requirement-item unmet" id="adminReqLength">
+                        <span class="requirement-icon cross">✗</span>
+                        <span>8+ characters</span>
+                      </div>
+                      <div class="requirement-item unmet" id="adminReqUppercase">
+                        <span class="requirement-icon cross">✗</span>
+                        <span>Uppercase (A-Z)</span>
+                      </div>
+                      <div class="requirement-item unmet" id="adminReqLowercase">
+                        <span class="requirement-icon cross">✗</span>
+                        <span>Lowercase (a-z)</span>
+                      </div>
+                      <div class="requirement-item unmet" id="adminReqNumbers">
+                        <span class="requirement-icon cross">✗</span>
+                        <span>Numbers (0-9)</span>
+                      </div>
+                      <div class="requirement-item unmet" id="adminReqSpecial">
+                        <span class="requirement-icon cross">✗</span>
+                        <span>Special chars (!@#...)</span>
+                      </div>
+                    </div>
+                    <div id="adminPasswordFeedback" class="password-feedback hidden"></div>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Create Admin Account</button>
+              </form>
+            </div>
+
+            <div class="admin-section">
+              <h3>Existing Admin Accounts</h3>
+              <div id="adminAccountsList" class="admin-list"></div>
+            </div>
+          </div>
+
           <!-- Settings Tab -->
           <div class="admin-tab-content" data-tab="settings">
             <div class="admin-section">
-              <h3>Admin Settings</h3>
-              <p>General settings and configurations coming soon...</p>
+              <h3>Change Admin Password</h3>
+              <p style="color: var(--text-secondary); margin-bottom: 1rem;">Update your admin account password. Choose a strong password with at least 8 characters.</p>
+              <form id="changeAdminPasswordForm" class="admin-form" style="max-width: 500px;">
+                <div class="form-group">
+                  <label for="currentAdminPassword">Current Password</label>
+                  <div class="password-field">
+                    <input type="password" id="currentAdminPassword" name="currentPassword" placeholder="••••••••" required>
+                    <button type="button" class="toggle-password-btn" onclick="togglePassword(event, 'currentAdminPassword')">
+                      <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      <svg class="eye-off-icon" style="display: none;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="newAdminPassword">New Password</label>
+                  <div class="password-field">
+                    <input type="password" id="newAdminPassword" name="newPassword" placeholder="••••••••" required>
+                    <button type="button" class="toggle-password-btn" onclick="togglePassword(event, 'newAdminPassword')">
+                      <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      <svg class="eye-off-icon" style="display: none;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                      </svg>
+                    </button>
+                  </div>
+                  <!-- Password Strength Indicator for Password Change -->
+                  <div id="changePasswordStrength" class="password-strength-container" style="display: none;">
+                    <div class="password-strength-text">
+                      <span class="password-strength-label">Password Strength:</span>
+                      <span id="changePasswordStrengthValue" class="password-strength-value weak">🔴 Weak</span>
+                    </div>
+                    <div class="password-strength-meter">
+                      <div class="password-strength-bar"></div>
+                      <div class="password-strength-bar"></div>
+                      <div class="password-strength-bar"></div>
+                      <div class="password-strength-bar"></div>
+                    </div>
+                    <div class="password-requirements">
+                      <div class="requirement-item unmet" id="changeReqLength">
+                        <span class="requirement-icon cross">✗</span>
+                        <span>8+ characters</span>
+                      </div>
+                      <div class="requirement-item unmet" id="changeReqUppercase">
+                        <span class="requirement-icon cross">✗</span>
+                        <span>Uppercase (A-Z)</span>
+                      </div>
+                      <div class="requirement-item unmet" id="changeReqLowercase">
+                        <span class="requirement-icon cross">✗</span>
+                        <span>Lowercase (a-z)</span>
+                      </div>
+                      <div class="requirement-item unmet" id="changeReqNumbers">
+                        <span class="requirement-icon cross">✗</span>
+                        <span>Numbers (0-9)</span>
+                      </div>
+                      <div class="requirement-item unmet" id="changeReqSpecial">
+                        <span class="requirement-icon cross">✗</span>
+                        <span>Special chars (!@#...)</span>
+                      </div>
+                    </div>
+                    <div id="changePasswordFeedback" class="password-feedback hidden"></div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="confirmNewAdminPassword">Confirm New Password</label>
+                  <div class="password-field">
+                    <input type="password" id="confirmNewAdminPassword" name="confirmPassword" placeholder="••••••••" required>
+                    <button type="button" class="toggle-password-btn" onclick="togglePassword(event, 'confirmNewAdminPassword')">
+                      <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      <svg class="eye-off-icon" style="display: none;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                      </svg>
+                    </button>
+                  </div>
+                  <div id="changePasswordMatch" class="password-match-status">
+                    <span class="password-match-icon">✓</span>
+                    <span>Passwords match</span>
+                  </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Update Password</button>
+              </form>
             </div>
           </div>
 
@@ -1108,6 +1314,7 @@
   <script src="js/data.js"></script>
   <script src="js/cursor.js"></script>
   <script src="js/animations.js"></script>
+  <script src="js/password-validator.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/user-auth.js"></script>
   <script src="js/admin.js"></script>

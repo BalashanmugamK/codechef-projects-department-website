@@ -45,6 +45,18 @@ class UserAuth {
 
     if (this.userSignupForm) {
       this.userSignupForm.addEventListener('submit', (e) => this.handleUserSignup(e));
+      
+      // Add password strength checking
+      const signupPassword = document.getElementById('signupPassword');
+      const confirmPassword = document.getElementById('confirmPassword');
+      
+      if (signupPassword) {
+        signupPassword.addEventListener('input', (e) => this.checkPasswordStrength(e));
+      }
+      
+      if (confirmPassword) {
+        confirmPassword.addEventListener('input', (e) => this.checkPasswordMatch(e));
+      }
     }
 
     if (this.userLoginBtn) {
@@ -185,13 +197,16 @@ class UserAuth {
     const password = document.getElementById('signupPassword').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
 
-    if (password !== confirmPassword) {
+    // Validate password match
+    if (!PasswordValidator.passwordsMatch(password, confirmPassword)) {
       this.showNotification('✗ Passwords do not match.', 'error');
       return;
     }
 
-    if (password.length < 6) {
-      this.showNotification('✗ Password must be at least 6 characters.', 'error');
+    // Validate password strength (must be strong)
+    const validation = PasswordValidator.validatePassword(password);
+    if (!validation.isValid) {
+      this.showNotification('✗ Password does not meet security requirements.', 'error');
       return;
     }
 
@@ -214,8 +229,9 @@ class UserAuth {
     users.push(newUser);
     localStorage.setItem('users', JSON.stringify(users));
 
-    this.showNotification('✓ Account created! You can now login.', 'success');
+    this.showNotification('✓ Account created successfully! You can now login.', 'success');
     this.userSignupForm.reset();
+    this.clearPasswordStrengthUI();
     
     setTimeout(() => {
       this.switchToLogin();
@@ -413,6 +429,110 @@ class UserAuth {
     this.updateUserUI();
   }
 
+  checkPasswordStrength(e) {
+    const password = e.target.value;
+    const validation = PasswordValidator.validatePassword(password);
+    this.updatePasswordStrengthUI(validation);
+  }
+
+  checkPasswordMatch(e) {
+    const password = document.getElementById('signupPassword').value;
+    const confirmPassword = e.target.value;
+    const match = PasswordValidator.passwordsMatch(password, confirmPassword);
+    
+    const matchStatus = document.getElementById('signupPasswordMatch');
+    if (matchStatus) {
+      if (password.length > 0 && confirmPassword.length > 0) {
+        matchStatus.classList.add('shown');
+        if (match) {
+          matchStatus.classList.remove('mismatch');
+          matchStatus.classList.add('match');
+          matchStatus.innerHTML = '<span class="password-match-icon">✓</span><span>Passwords match</span>';
+        } else {
+          matchStatus.classList.remove('match');
+          matchStatus.classList.add('mismatch');
+          matchStatus.innerHTML = '<span class="password-match-icon">✗</span><span>Passwords do not match</span>';
+        }
+      } else {
+        matchStatus.classList.remove('shown');
+      }
+    }
+  }
+
+  updatePasswordStrengthUI(validation) {
+    const container = document.getElementById('signupPasswordStrength');
+    if (!container) return;
+
+    container.style.display = 'block';
+    
+    // Update strength text
+    const strengthValue = document.getElementById('signupPasswordStrengthValue');
+    if (strengthValue) {
+      strengthValue.textContent = PasswordValidator.getStrengthText(validation.strength);
+      strengthValue.className = `password-strength-value ${validation.strength}`;
+    }
+
+    // Update requirement indicators
+    const requirements = {
+      minLength: 'signupReqLength',
+      hasUppercase: 'signupReqUppercase',
+      hasLowercase: 'signupReqLowercase',
+      hasNumbers: 'signupReqNumbers',
+      hasSpecialChars: 'signupReqSpecial'
+    };
+
+    Object.keys(requirements).forEach(req => {
+      const element = document.getElementById(requirements[req]);
+      if (element) {
+        if (validation.requirementsMet[req]) {
+          element.classList.remove('unmet');
+          element.classList.add('met');
+          element.querySelector('.requirement-icon').textContent = '✓';
+        } else {
+          element.classList.remove('met');
+          element.classList.add('unmet');
+          element.querySelector('.requirement-icon').textContent = '✗';
+        }
+      }
+    });
+
+    // Update progress meter
+    const bars = document.querySelectorAll('#signupPasswordStrength .password-strength-bar');
+    bars.forEach((bar, index) => {
+      const percentage = PasswordValidator.getStrengthPercentage(validation.strength);
+      const barsNeeded = Math.ceil((percentage / 100) * bars.length);
+      bar.style.opacity = index < barsNeeded ? '1' : '0.2';
+    });
+
+    // Update feedback
+    const feedback = document.getElementById('signupPasswordFeedback');
+    if (feedback) {
+      if (validation.isValid) {
+        feedback.classList.remove('hidden');
+        feedback.classList.add('success');
+        feedback.innerHTML = '<div style="font-weight: 600; color: inherit;">✓ Strong password! Ready to continue.</div>';
+      } else if (validation.feedback.length > 0) {
+        feedback.classList.remove('hidden', 'success');
+        feedback.innerHTML = '<ul>' + 
+          validation.feedback.map(msg => `<li>${msg}</li>`).join('') + 
+          '</ul>';
+      } else {
+        feedback.classList.add('hidden');
+      }
+    }
+  }
+
+  clearPasswordStrengthUI() {
+    const container = document.getElementById('signupPasswordStrength');
+    if (container) {
+      container.style.display = 'none';
+    }
+    const matchStatus = document.getElementById('signupPasswordMatch');
+    if (matchStatus) {
+      matchStatus.classList.remove('shown');
+    }
+  }
+
   updateUserUI() {
     const userLoginBtn = document.getElementById('userLoginBtn');
     const userLogoutBtn = document.getElementById('userLogoutBtn');
@@ -476,5 +596,6 @@ class UserAuth {
 
 // Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
-  new UserAuth();
+  // Expose instance for cross-module UI updates
+  window.userAuth = new UserAuth();
 });

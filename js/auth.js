@@ -13,18 +13,46 @@ class AuthManager {
     this.closeAdminModal = document.getElementById('closeAdminModal');
     this.adminLogout = document.getElementById('adminLogout');
     this.currentUser = null;
-    this.admins = [
+    
+    // Load admins from localStorage or initialize with defaults
+    this.admins = this.loadAdmins();
+
+    this.init();
+  }
+
+  loadAdmins() {
+    const storedAdmins = localStorage.getItem('adminAccounts');
+    if (storedAdmins) {
+      try {
+        return JSON.parse(storedAdmins);
+      } catch (e) {
+        console.error('Error parsing admin accounts:', e);
+      }
+    }
+    
+    // Default admin accounts
+    const defaultAdmins = [
       {
         email: 'admin@codechef-projects.com',
-        password: 'Admin@123'
+        password: 'Admin@123',
+        createdAt: new Date().toISOString(),
+        role: 'super-admin'
       },
       {
         email: 'lead@codechef-projects.com',
-        password: 'Lead@123'
+        password: 'Lead@123',
+        createdAt: new Date().toISOString(),
+        role: 'admin'
       }
     ];
+    
+    // Save default admins to localStorage
+    localStorage.setItem('adminAccounts', JSON.stringify(defaultAdmins));
+    return defaultAdmins;
+  }
 
-    this.init();
+  saveAdmins() {
+    localStorage.setItem('adminAccounts', JSON.stringify(this.admins));
   }
 
   init() {
@@ -130,6 +158,10 @@ class AuthManager {
       };
 
       localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+      if (window.userAuth && typeof window.userAuth.updateUserUI === 'function') {
+        window.userAuth.currentUser = null;
+        window.userAuth.updateUserUI();
+      }
       this.showNotification('✓ Login successful! Welcome back.', 'success');
       this.loginForm.reset();
 
@@ -165,13 +197,62 @@ class AuthManager {
 
   openAdminPanel() {
     console.log('openAdminPanel called', { currentUser: this.currentUser });
+    
+    // Check if a regular user is logged in
+    const current = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    if (current && current.role === 'user') {
+      this.showUserLogoutConfirmPopup();
+      return;
+    }
+    
     if (!this.currentUser) {
       console.log('No current user - opening login');
       this.openLogin();
-    } else {
-      console.log('User already logged in - opening admin panel');
+    } else if (this.currentUser.role === 'admin') {
+      console.log('Admin already logged in - opening admin panel');
       this.openAdmin();
     }
+  }
+
+  showUserLogoutConfirmPopup() {
+    // Create custom popup for user to logout before admin login
+    const popup = document.createElement('div');
+    popup.className = 'logout-confirm-popup';
+    popup.innerHTML = `
+      <div class="logout-popup-overlay"></div>
+      <div class="logout-popup-content">
+        <h3>Switch to Admin Login</h3>
+        <p>You are currently logged in as a user. Please logout first to access the admin panel.</p>
+        <div class="logout-popup-buttons">
+          <button class="btn btn-secondary logout-popup-cancel">Cancel</button>
+          <button class="btn btn-danger logout-popup-confirm">Logout & Continue</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(popup);
+    
+    const cancelBtn = popup.querySelector('.logout-popup-cancel');
+    const confirmBtn = popup.querySelector('.logout-popup-confirm');
+    
+    const closePopup = () => popup.remove();
+    
+    cancelBtn.addEventListener('click', closePopup);
+    confirmBtn.addEventListener('click', () => {
+      closePopup();
+      // Logout the user
+      localStorage.removeItem('currentUser');
+      this.currentUser = null;
+      if (window.userAuth && typeof window.userAuth.updateUserUI === 'function') {
+        window.userAuth.currentUser = null;
+        window.userAuth.updateUserUI();
+      }
+      this.showNotification('✓ User logged out. Now you can login as admin.', 'success');
+      // Open admin login after logout
+      setTimeout(() => this.openLogin(), 300);
+    });
+    
+    popup.querySelector('.logout-popup-overlay').addEventListener('click', closePopup);
   }
 
   openLogin() {
@@ -323,6 +404,72 @@ class AuthManager {
       notification.style.animation = 'slideInUp 0.4s ease-out reverse';
       setTimeout(() => notification.remove(), 400);
     }, 3000);
+  }
+
+  // Admin account management methods
+  addAdminAccount(email, password) {
+    // Check if admin already exists
+    if (this.admins.find(a => a.email === email)) {
+      return { success: false, message: 'Admin email already exists.' };
+    }
+
+    // Validate password strength
+    const validation = PasswordValidator.validatePassword(password);
+    if (!validation.isValid) {
+      return { success: false, message: 'Password does not meet security requirements.' };
+    }
+
+    const newAdmin = {
+      email: email,
+      password: password, // In production, hash this
+      createdAt: new Date().toISOString(),
+      role: 'admin'
+    };
+
+    this.admins.push(newAdmin);
+    this.saveAdmins();
+    
+    return { success: true, message: 'Admin account created successfully.' };
+  }
+
+  deleteAdminAccount(email) {
+    // Prevent deletion of super admin
+    const admin = this.admins.find(a => a.email === email);
+    if (admin && admin.role === 'super-admin') {
+      return { success: false, message: 'Cannot delete super admin account.' };
+    }
+
+    this.admins = this.admins.filter(a => a.email !== email);
+    this.saveAdmins();
+    
+    return { success: true, message: 'Admin account deleted successfully.' };
+  }
+
+  updateAdminPassword(email, newPassword) {
+    // Validate password strength
+    const validation = PasswordValidator.validatePassword(newPassword);
+    if (!validation.isValid) {
+      return { success: false, message: 'Password does not meet security requirements.' };
+    }
+
+    const admin = this.admins.find(a => a.email === email);
+    if (!admin) {
+      return { success: false, message: 'Admin account not found.' };
+    }
+
+    admin.password = newPassword;
+    admin.updatedAt = new Date().toISOString();
+    this.saveAdmins();
+    
+    return { success: true, message: 'Password updated successfully.' };
+  }
+
+  getAdminAccounts() {
+    return this.admins.map(a => ({
+      email: a.email,
+      createdAt: a.createdAt,
+      role: a.role
+    }));
   }
 }
 
