@@ -158,6 +158,10 @@ class AuthManager {
       };
 
       localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+      if (window.userAuth && typeof window.userAuth.updateUserUI === 'function') {
+        window.userAuth.currentUser = null;
+        window.userAuth.updateUserUI();
+      }
       this.showNotification('✓ Login successful! Welcome back.', 'success');
       this.loginForm.reset();
 
@@ -239,6 +243,10 @@ class AuthManager {
       // Logout the user
       localStorage.removeItem('currentUser');
       this.currentUser = null;
+      if (window.userAuth && typeof window.userAuth.updateUserUI === 'function') {
+        window.userAuth.currentUser = null;
+        window.userAuth.updateUserUI();
+      }
       this.showNotification('✓ User logged out. Now you can login as admin.', 'success');
       // Open admin login after logout
       setTimeout(() => this.openLogin(), 300);

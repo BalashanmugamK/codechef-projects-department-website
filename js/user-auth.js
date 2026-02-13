@@ -596,5 +596,6 @@ class UserAuth {
 
 // Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
-  new UserAuth();
+  // Expose instance for cross-module UI updates
+  window.userAuth = new UserAuth();
 });

@@ -52,6 +52,7 @@ class DepartmentPortal {
     this.renderAchievements('awards');
     this.renderGameDev('members');
     this.renderQuestSystem('leaderboard');
+    this.renderEvents('upcoming');
   }
 
   setupEventListeners() {
@@ -595,26 +596,55 @@ handleNavClick(e) {
   renderEvents(type) {
     const container = document.getElementById('eventsDisplay');
     const events = appData.events || [];
-    
-    let filteredEvents = type === 'upcoming' 
-      ? events.filter(e => new Date(e.date) >= new Date())
-      : events.filter(e => new Date(e.date) < new Date());
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let filteredEvents = [];
+    if (type === 'all') {
+      filteredEvents = [...events];
+    } else if (type === 'upcoming') {
+      filteredEvents = events.filter(e => new Date(e.date) >= today);
+    } else {
+      filteredEvents = events.filter(e => new Date(e.date) < today);
+    }
+
+    // Sort events: upcoming asc, past desc, all asc
+    filteredEvents.sort((a, b) => {
+      const aDate = new Date(a.date);
+      const bDate = new Date(b.date);
+      return type === 'past' ? bDate - aDate : aDate - bDate;
+    });
 
     if (filteredEvents.length === 0) {
       container.innerHTML = `<div class="card" style="text-align: center; padding: 3rem; grid-column: 1 / -1;">No ${type} events</div>`;
       return;
     }
 
-    container.innerHTML = filteredEvents.map((event) => `
-      <div class="card">
-        <h3>${event.title}</h3>
-        <p style="color: var(--text-secondary); margin-bottom: 0.5rem;">📅 ${new Date(event.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}</p>
-        <p style="color: var(--text-secondary); margin-bottom: 0.75rem;">🕐 ${event.time}</p>
-        <p style="color: var(--text-tertiary); font-size: 0.875rem; line-height: 1.6; margin-bottom: 1rem;">${event.description}</p>
-        <p style="color: var(--accent-primary); font-weight: 600;">📍 ${event.location}</p>
-        ${event.link ? `<a href="${event.link}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="margin-top: 0.75rem; display: inline-block;">Learn More ↗</a>` : ''}
-      </div>
-    `).join('');
+    container.innerHTML = filteredEvents.map((event) => {
+      const eventDate = new Date(event.date);
+      const isUpcoming = eventDate >= today;
+      const daysDiff = Math.ceil((eventDate - today) / (1000 * 60 * 60 * 24));
+      const soonLabel = isUpcoming && daysDiff <= 14 ? 'Happening Soon' : '';
+      const typeLabel = event.type ? event.type.charAt(0).toUpperCase() + event.type.slice(1) : 'Event';
+
+      return `
+      <div class="card event-card ${isUpcoming ? 'event-upcoming' : 'event-past'}">
+        <div class="event-header">
+          <span class="event-chip">${typeLabel}</span>
+          ${soonLabel ? `<span class="event-pill">${soonLabel}</span>` : ''}
+        </div>
+        <h3 class="event-title">${event.title}</h3>
+        <div class="event-meta">
+          <span>📅 ${eventDate.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}</span>
+          <span>🕐 ${event.time}</span>
+        </div>
+        <p class="event-description">${event.description}</p>
+        <div class="event-footer">
+          <span class="event-location">📍 ${event.location}</span>
+          ${event.link ? `<a href="${event.link}" target="_blank" rel="noopener noreferrer" class="btn btn-primary event-cta">Learn More ↗</a>` : ''}
+        </div>
+      </div>`;
+    }).join('');
   }
 }
 
