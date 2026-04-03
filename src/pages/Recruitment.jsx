@@ -124,6 +124,13 @@ const Recruitment = () => {
         event.preventDefault();
         setError('');
 
+        // Prevent admin users from joining recruitment
+        if (user && user.role === 'admin') {
+            setError('Admin users cannot join recruitment as they are already team members.');
+            addNotification('Admin users cannot join recruitment as they are already team members.', { type: 'error' });
+            return;
+        }
+
         if (systemConfig.maintenanceMode) {
             setError('Recruitment is temporarily unavailable because maintenance mode is enabled.');
             return;
@@ -153,10 +160,10 @@ const Recruitment = () => {
 
             if (data.success) {
                 setSubmitted(true);
-                addNotification('Application submitted successfully! We will contact you soon.', 'success', 3000);
+                addNotification('Application submitted successfully! We will contact you soon.', { type: 'success', duration: 3000 });
             } else {
                 setError(data.message || 'Failed to submit application');
-                addNotification(data.message || 'Failed to submit application', 'error', 3000);
+                addNotification(data.message || 'Failed to submit application', { type: 'error', duration: 3000 });
             }
         } catch (err) {
             console.error('Application error:', err);
@@ -197,7 +204,9 @@ const Recruitment = () => {
             const data = await response.json();
 
             if (data.success) {
-                setBookingMsg(`Booked: ${date} @ ${time}`);
+                const successText = `Booked interview slot: ${date} @ ${time}`;
+                setBookingMsg(successText);
+                addNotification(successText, { type: 'success', duration: 5000 });
                 setSelectedSlot('');
                 await fetchUserBookings();
                 setTimeout(() => {
@@ -205,7 +214,9 @@ const Recruitment = () => {
                     setShowBooking(false);
                 }, 1500);
             } else {
-                setBookingMsg(data.message || 'Failed to book slot');
+                const errorText = data.message || 'Failed to book slot';
+                setBookingMsg(errorText);
+                addNotification(errorText, { type: 'error', duration: 5000 });
             }
         } catch (err) {
             console.error('Booking error:', err);

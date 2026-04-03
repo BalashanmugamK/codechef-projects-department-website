@@ -50,6 +50,7 @@ const applicationSchema = new mongoose.Schema({
 const interviewSlotSchema = new mongoose.Schema({
     date: { type: String, required: true },
     time: { type: String, required: true },
+    duration: { type: Number, default: 10 },
     createdAt: { type: Date, default: Date.now }
 });
 
@@ -210,9 +211,9 @@ app.get('/api/interview-slots', async (req, res) => {
 
 app.post('/api/slots', async (req, res) => {
     try {
-        const { date, time } = req.body;
+        const { date, time, duration } = req.body;
         if (!date || !time) return res.status(400).json({ success: false, message: 'Date and time are required' });
-        const slot = new InterviewSlot({ date, time });
+        const slot = new InterviewSlot({ date, time, duration: duration || 10 });
         await slot.save();
         res.json({ success: true, slot });
     } catch (err) {

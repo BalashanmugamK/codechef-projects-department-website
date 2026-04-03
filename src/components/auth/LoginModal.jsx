@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useNotification } from '../../context/NotificationContext';
 import ccLogo from '../../assets/cc.svg';
 
 const LoginModal = () => {
     const { isLoginOpen, closeLogin, login, openSignup, openForgotPassword } = useAuth();
+    const { addNotification } = useNotification();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -18,6 +20,8 @@ const LoginModal = () => {
         try {
             const result = await login(email, password);
             if (result.success) {
+                const message = result.message || `Welcome back, ${result.user.name}!`;
+                addNotification(message, { type: 'success' });
                 closeLogin();
                 setEmail('');
                 setPassword('');

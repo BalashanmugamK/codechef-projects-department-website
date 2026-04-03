@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useNotification } from '../../context/NotificationContext';
 import ccLogo from '../../assets/cc.svg';
 
 const AdminLoginModal = () => {
     const { isAdminLoginOpen, closeAdminLogin, adminLogin, getAdmins, openAdminDashboard } = useAuth();
+    const { addNotification } = useNotification();
     const [email, setEmail] = useState('');
     const [isClosing, setIsClosing] = useState(false);
     const [password, setPassword] = useState('');
@@ -19,6 +21,7 @@ const AdminLoginModal = () => {
         try {
             const result = await adminLogin(email, password);
             if (result.success) {
+                addNotification(result.message, { type: 'success' });
                 closeAdminLogin();
                 openAdminDashboard();
                 setEmail('');

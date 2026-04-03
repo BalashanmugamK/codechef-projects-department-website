@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useNotification } from '../../context/NotificationContext';
 import ccLogo from '../../assets/cc.svg';
 
 const ForgotPasswordModal = () => {
     const { isForgotPasswordOpen, closeForgotPassword, openLogin } = useAuth();
+    const { addNotification } = useNotification();
     const [email, setEmail] = useState('');
     const [sent, setSent] = useState(false);
     const [error, setError] = useState('');
@@ -20,6 +22,7 @@ const ForgotPasswordModal = () => {
             });
             const data = await response.json();
             if (data.success) {
+                addNotification('Password recovery email would be sent!', { type: 'info' });
                 setSent(true);
             } else {
                 setError(data.message);

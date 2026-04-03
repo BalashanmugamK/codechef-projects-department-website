@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }) => {
             if (data.success) {
                 setUser(data.user);
                 localStorage.setItem('currentUser', JSON.stringify(data.user));
-                return { success: true, user: data.user };
+                return { success: true, user: data.user, message: `Welcome back, ${data.user.name}!` };
             }
 
             return { success: false, message: data.message || 'Server error. Try again.' };
@@ -75,7 +75,7 @@ export const AuthProvider = ({ children }) => {
             if (data.success) {
                 setUser(data.user);
                 localStorage.setItem('currentUser', JSON.stringify(data.user));
-                return { success: true, user: data.user };
+                return { success: true, user: data.user, message: 'Login Successful, Welcome Back!' };
             }
 
             return { success: false, message: data.message || 'Admin login failed' };

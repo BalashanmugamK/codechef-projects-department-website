@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useNotification } from '../../context/NotificationContext';
 
 // Inline SVG icon components
 const IconX = ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
@@ -17,6 +18,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const AdminModal = ({ isOpen, onClose }) => {
     const [activeTab, setActiveTab] = useState('members');
     const { user, logout, getAdmins, addAdmin, updateAdminPassword } = useAuth();
+    const { addNotification } = useNotification();
 
     // Force re-render helper to update lists
     const [tick, setTick] = useState(0);
@@ -47,6 +49,7 @@ const AdminModal = ({ isOpen, onClose }) => {
     // Interview Slots State
     const [slotDate, setSlotDate] = useState('');
     const [slotTime, setSlotTime] = useState('');
+    const [slotDuration, setSlotDuration] = useState(10); // Default 10 minutes
     const [slotsMsg, setSlotsMsg] = useState('');
 
     // Admin Accounts State
@@ -206,15 +209,26 @@ const AdminModal = ({ isOpen, onClose }) => {
             const response = await fetch(`${API_URL}/api/slots`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ date: slotDate, time: slotTime })
+                body: JSON.stringify({ date: slotDate, time: slotTime, duration: slotDuration })
             });
             const data = await response.json();
             if (response.ok && data.success) {
-                setSlotsMsg(`✓ Slot added: ${slotDate} @ ${slotTime}`);
-                setSlotDate(''); setSlotTime('');
+                const messageText = `New interview slot added: ${slotDate} at ${slotTime} (${slotDuration} mins)`;
+                setSlotsMsg(`✓ ${messageText}`);
+                addNotification(messageText, { type: 'success' });
+
+                // Also broadcast to all users via backend message
+                fetch(`${API_URL}/api/admin/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: messageText })
+                }).catch((err) => console.error('Broadcast API error', err));
+
+                setSlotDate(''); setSlotTime(''); setSlotDuration(10);
                 forceUpdate();
             } else {
                 setSlotsMsg(data.message || 'Failed to add slot');
+                addNotification(data.message || 'Failed to add slot', { type: 'error' });
             }
         } catch (error) {
             console.error('Add slot error:', error);
@@ -756,6 +770,15 @@ const AdminModal = ({ isOpen, onClose }) => {
                                             style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', flex: 1 }} />
                                         <input type="time" value={slotTime} onChange={(e) => setSlotTime(e.target.value)}
                                             style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', flex: 1 }} />
+                                        <select value={slotDuration} onChange={(e) => setSlotDuration(parseInt(e.target.value))}
+                                            style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', minWidth: '100px' }}>
+                                            <option value={10}>10 mins</option>
+                                            <option value={15}>15 mins</option>
+                                            <option value={20}>20 mins</option>
+                                            <option value={30}>30 mins</option>
+                                            <option value={45}>45 mins</option>
+                                            <option value={60}>60 mins</option>
+                                        </select>
                                         <button className="btn btn-primary btn-sm" onClick={handleAddSlot}>Add Slot</button>
                                     </div>
                                     {slotsMsg && <div style={{ fontSize: '0.85rem', color: slotsMsg.startsWith('✓') ? '#10b981' : '#ef4444', marginBottom: '0.75rem' }}>{slotsMsg}</div>}
@@ -766,7 +789,7 @@ const AdminModal = ({ isOpen, onClose }) => {
                                                 <li key={i} className="member-item">
                                                     <div className="item-info">
                                                         <span className="item-name">{s.date}</span>
-                                                        <span className="item-role">{s.time}</span>
+                                                        <span className="item-role">{s.time} ({s.duration || 10} mins)</span>
                                                     </div>
                                                     <div className="item-actions">
                                                         <button className="btn btn-secondary btn-sm" style={{ color: '#ef4444' }} onClick={() => handleRemoveSlot(s._id)}>

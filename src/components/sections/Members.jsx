@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getAnimationDelayStyle } from '../../utils/animationUtils';
 import { getMemberPlaceholder } from '../../utils/placeholderUtils';
+import { members as mockMembers } from '../../data/mockData';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -22,6 +23,7 @@ const Members = () => {
     try {
       const response = await fetch(`${API_URL}/api/members`);
       if (!response.ok) {
+        console.error('Members API error:', response.status, response.statusText);
         throw new Error(`Failed to load members (status ${response.status})`);
       }
       const data = await response.json();
@@ -51,8 +53,31 @@ const Members = () => {
       }
     } catch (err) {
       console.error('Members fetch error:', err);
-      setError('Could not load members from server. Please try again later.');
-      setMembersList([]);
+      // Fallback to mock data
+      console.log('Using mock data as fallback');
+      const allMockMembers = [
+        ...mockMembers.leads.map(m => ({ ...m, group: 'Lead Developer' })),
+        ...mockMembers.members.map(m => ({ ...m, group: 'Core Team' })),
+        ...mockMembers.mentors.map(m => ({ ...m, group: 'Mentor' }))
+      ];
+      let filtered = allMockMembers.filter(m => {
+        const memberTenure = m.tenure || '2025-26';
+        return memberTenure === activeTenure;
+      });
+
+      filtered = filtered.filter(m => {
+        const memberGroup = m.group || 'Core Team';
+        const mapActiveGroup = {
+          'leads': 'Lead Developer',
+          'members': 'Core Team',
+          'mentors': 'Mentor'
+        };
+        const displayName = mapActiveGroup[activeGroup] || activeGroup;
+        return memberGroup === displayName;
+      });
+
+      setMembersList(filtered);
+      setError(''); // Clear error since we have fallback data
     } finally {
       setLoading(false);
     }

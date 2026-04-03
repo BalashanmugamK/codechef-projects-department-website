@@ -2,11 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useNotification } from '../context/NotificationContext';
 import ccLogo from '../assets/cc.svg';
 
 const Navbar = () => {
     const { theme, toggleTheme } = useTheme();
     const { user, logout, openLogin, openAdminLogin, openAdminDashboard } = useAuth();
+    const { addNotification } = useNotification();
     const [isOpen, setIsOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const [activeSection, setActiveSection] = useState('home');
@@ -131,7 +133,15 @@ const Navbar = () => {
                                 <span id="userProfile" style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>
                                     👤 {user.name}
                                 </span>
-                                <button onClick={logout} className="btn btn-danger" title="Logout" id="userLogoutBtn">
+                                <button
+                                    onClick={() => {
+                                        logout();
+                                        addNotification('Logged out Successfully!', { type: 'success' });
+                                    }}
+                                    className="btn btn-danger"
+                                    title="Logout"
+                                    id="userLogoutBtn"
+                                >
                                     Logout
                                 </button>
                             </>

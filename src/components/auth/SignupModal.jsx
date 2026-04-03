@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useNotification } from '../../context/NotificationContext';
 import PasswordValidator from '../../utils/passwordValidator';
 // import { motion, AnimatePresence } from 'framer-motion';
 import ccLogo from '../../assets/cc.svg';
 
 const SignupModal = () => {
     const { isSignupOpen, closeSignup, registerUser, openLogin } = useAuth();
+    const { addNotification } = useNotification();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -71,8 +73,13 @@ const SignupModal = () => {
 
         try {
             await registerUser({ name, email, password });
+            addNotification('Account created successfully! You can login.', { type: 'success' });
+            closeSignup();
             openLogin();
-            alert('Account created! Please login.');
+            setName('');
+            setEmail('');
+            setPassword('');
+            setConfirmPassword('');
         } catch (err) {
             setError(err.message || 'Registration failed. Please try again.');
         } finally {
