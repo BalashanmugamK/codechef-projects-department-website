@@ -1,5 +1,6 @@
 import { research as researchPapers } from '../../data/mockData';
 import { useCarouselAutoScroll } from '../../utils/useScrollAnimations';
+import { getAnimationDelayStyle } from '../../utils/animationUtils';
 
 const Research = () => {
     const [carouselRef, isHovered, setIsHovered] = useCarouselAutoScroll(true);
@@ -29,7 +30,9 @@ const Research = () => {
                             border: '1px solid var(--border-color)',
                             transition: 'all 0.3s ease',
                             display: 'flex',
-                            flexDirection: 'column'
+                            flexDirection: 'column',
+                            animation: 'fadeInUp 0.6s ease forwards',
+                            ...getAnimationDelayStyle(index % researchPapers.length)
                         }}
                     >
                         <div className="research-header" style={{ marginBottom: '1rem' }}>

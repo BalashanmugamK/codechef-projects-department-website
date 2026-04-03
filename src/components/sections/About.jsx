@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getAnimationDelayStyle } from '../../utils/animationUtils';
 
 const About = () => {
     const [aboutText, setAboutText] = useState(
@@ -21,7 +22,10 @@ const About = () => {
                 </p>
             </div>
 
-            <div className="card about-card">
+            <div className="card about-card" style={{
+                animation: 'fadeInUp 0.6s ease forwards',
+                ...getAnimationDelayStyle(0)
+            }}>
                 <p>
                     {aboutText}
                 </p>

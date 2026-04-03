@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { achievements } from '../../data/mockData';
+import { getAnimationDelayStyle } from '../../utils/animationUtils';
 
 const Achievements = () => {
     const [activeTab, setActiveTab] = useState('awards'); // awards, milestones, hackathons
@@ -27,12 +28,14 @@ const Achievements = () => {
             </div>
 
             <div className="achievements-grid" id="achievementDisplay">
-                {filteredAchievements.map((item) => (
+                {filteredAchievements.map((item, index) => (
                     <div className="achievement-card" key={item.id}
                         style={{
                             background: 'var(--bg-secondary)', borderRadius: '12px', padding: '2rem',
                             border: '1px solid var(--border-color)', textAlign: 'center',
-                            transition: 'transform 0.3s ease'
+                            transition: 'transform 0.3s ease',
+                            animation: 'fadeInUp 0.6s ease forwards',
+                            ...getAnimationDelayStyle(index)
                         }}
                     >
                         <div className="achievement-icon" style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>

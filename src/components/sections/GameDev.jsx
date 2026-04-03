@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { gameDev } from '../../data/mockData';
+import { getMemberPlaceholder } from '../../utils/placeholderUtils';
 
 const GameDev = () => {
     const [activeTab, setActiveTab] = useState('members');
@@ -18,12 +19,12 @@ const GameDev = () => {
                 {gameDev.members.map((member, idx) => (
                     <div key={member.name} className="card" style={{ animationDelay: `${idx * 0.1}s`, textAlign: 'center' }}>
                         <img
-                            src={member.photo || `https://via.placeholder.com/140/FF6B35/ffffff?text=${member.name.charAt(0)}`}
+                            src={member.photo || getMemberPlaceholder(member)}
                             alt={member.name}
                             className="pfp"
                             style={{ marginBottom: '1rem' }}
                             loading="lazy"
-                            onError={(e) => { e.target.src = `https://via.placeholder.com/140/FF6B35/ffffff?text=${member.name.charAt(0)}`; }}
+                            onError={(e) => { e.target.src = getMemberPlaceholder(member); }}
                         />
                         <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)' }}>{member.name}</h4>
                         <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', margin: 0 }}>Game Developer</p>

@@ -11,6 +11,7 @@ const SignupModal = () => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const [strength, setStrength] = useState({ score: 0, strength: 'weak', feedback: [] });
 
     const handlePasswordChange = (e) => {
@@ -51,35 +52,31 @@ const SignupModal = () => {
         }
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setIsLoading(true);
 
         if (password !== confirmPassword) {
             setError('Passwords do not match');
+            setIsLoading(false);
             return;
         }
 
         if (strength.strength === 'weak') {
             setError('Password is too weak');
+            setIsLoading(false);
             return;
         }
 
         try {
-            const newUser = {
-                id: Date.now(),
-                name,
-                email,
-                password: btoa(password),
-                registrationDate: new Date(),
-                role: 'user'
-            };
-
-            registerUser(newUser);
+            await registerUser({ name, email, password });
             openLogin();
             alert('Account created! Please login.');
         } catch (err) {
-            setError(err.message);
+            setError(err.message || 'Registration failed. Please try again.');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -197,8 +194,8 @@ const SignupModal = () => {
                         )}
                     </div>
 
-                    <button type="submit" className="btn btn-primary btn-block" style={{ width: '100%', padding: '0.75rem', fontSize: '1rem' }}>
-                        Sign Up
+                    <button type="submit" className="btn btn-primary btn-block" style={{ width: '100%', padding: '0.75rem', fontSize: '1rem' }} disabled={isLoading}>
+                        {isLoading ? 'Creating Account...' : 'Sign Up'}
                     </button>
 
                     <div className="login-note-container" style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>

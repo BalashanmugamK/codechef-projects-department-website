@@ -1,15 +1,16 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null); // { name, email, role: 'user' | 'admin' | 'super-admin' }
+    const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Check local storage for existing session
         const storedUser = localStorage.getItem('currentUser');
         if (storedUser) {
             try {
@@ -22,10 +23,66 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
     }, []);
 
-    const login = (userData) => {
-        // userData should include role
-        setUser(userData);
-        localStorage.setItem('currentUser', JSON.stringify(userData));
+    const login = async (email, password) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, password })
+            });
+
+            const data = await response.json();
+
+            if (response.status === 401) {
+                return { success: false, message: 'Invalid email or password' };
+            }
+
+            if (!response.ok) {
+                return { success: false, message: data.message || 'Server error. Try again.' };
+            }
+
+            if (data.success) {
+                setUser(data.user);
+                localStorage.setItem('currentUser', JSON.stringify(data.user));
+                return { success: true, user: data.user };
+            }
+
+            return { success: false, message: data.message || 'Server error. Try again.' };
+        } catch (error) {
+            console.error('Login error:', error);
+            return { success: false, message: 'Server error. Try again.' };
+        }
+    };
+
+    const adminLogin = async (email, password) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/auth/admin-login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, password })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                return { success: false, message: data.message || 'Admin login failed' };
+            }
+
+            if (data.success) {
+                setUser(data.user);
+                localStorage.setItem('currentUser', JSON.stringify(data.user));
+                return { success: true, user: data.user };
+            }
+
+            return { success: false, message: data.message || 'Admin login failed' };
+        } catch (error) {
+            console.error('Admin login error:', error);
+            return { success: false, message: 'Server error. Try again.' };
+        }
     };
 
     const logout = () => {
@@ -33,49 +90,97 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('currentUser');
     };
 
-    const registerUser = (newUser) => {
-        const users = JSON.parse(localStorage.getItem('users')) || [];
-        if (users.find((u) => u.email === newUser.email)) {
-            throw new Error('Email already registered');
-        }
-        users.push(newUser);
-        localStorage.setItem('users', JSON.stringify(users));
+    const registerUser = async (userData) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(userData)
+            });
 
-        // Auto login after register?
-        // login({ ...newUser, role: 'user' }); 
+            const data = await response.json();
+
+            if (!response.ok) {
+                return { success: false, message: data.message || 'Registration failed' };
+            }
+
+            if (data.success) {
+                setUser(data.user);
+                localStorage.setItem('currentUser', JSON.stringify(data.user));
+                return { success: true, user: data.user };
+            }
+
+            return { success: false, message: data.message || 'Registration failed' };
+        } catch (error) {
+            console.error('Registration error:', error);
+            return { success: false, message: 'Server error. Try again.' };
+        }
     };
 
-    // Default admin accounts (matching legacy system)
-    const defaultAdmins = [
-        {
-            email: 'admin@codechef-projects.com',
-            password: 'Admin@123',
-            createdAt: new Date().toISOString(),
-            role: 'super-admin'
-        },
-        {
-            email: 'lead@codechef-projects.com',
-            password: 'Lead@123',
-            createdAt: new Date().toISOString(),
-            role: 'admin'
+    const getAdmins = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/admin/accounts`);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch admins: ${response.status}`);
+            }
+            const data = await response.json();
+            return data.success ? data.accounts : [];
+        } catch (error) {
+            console.error('Failed to fetch admins:', error);
+            return [];
         }
-    ];
+    };
 
-    // Admin logic
-    const getAdmins = () => {
-        const stored = JSON.parse(localStorage.getItem('adminAccounts'));
-        if (!stored || stored.length === 0) {
-            localStorage.setItem('adminAccounts', JSON.stringify(defaultAdmins));
-            return defaultAdmins;
+    const addAdmin = async (adminData) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/admin/accounts`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(adminData)
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                return { success: false, message: data.message || 'Failed to add admin' };
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Add admin error:', error);
+            return { success: false, message: 'Server error. Try again.' };
         }
-        return stored;
+    };
+
+    const updateAdminPassword = async (email, currentPassword, newPassword) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/admin/accounts/${email}/password`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ currentPassword, newPassword })
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                return { success: false, message: data.message || 'Failed to update password' };
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Update password error:', error);
+            return { success: false, message: 'Server error. Try again.' };
+        }
     };
 
     const [isLoginOpen, setIsLoginOpen] = useState(false);
     const [isSignupOpen, setIsSignupOpen] = useState(false);
     const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
     const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
-
     const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
 
     const openLogin = () => { setIsLoginOpen(true); setIsSignupOpen(false); setIsForgotPasswordOpen(false); setIsAdminLoginOpen(false); };
@@ -92,7 +197,8 @@ export const AuthProvider = ({ children }) => {
 
     return (
         <AuthContext.Provider value={{
-            user, loading, login, logout, registerUser, getAdmins,
+            user, loading, login, adminLogin, logout, registerUser,
+            getAdmins, addAdmin, updateAdminPassword,
             isLoginOpen, openLogin, closeLogin,
             isSignupOpen, openSignup, closeSignup,
             isForgotPasswordOpen, openForgotPassword, closeForgotPassword,

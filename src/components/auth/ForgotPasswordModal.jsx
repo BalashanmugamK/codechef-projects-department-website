@@ -6,16 +6,33 @@ const ForgotPasswordModal = () => {
     const { isForgotPasswordOpen, closeForgotPassword, openLogin } = useAuth();
     const [email, setEmail] = useState('');
     const [sent, setSent] = useState(false);
+    const [error, setError] = useState('');
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        // Simulate sending recovery email
-        setSent(true);
+        setError('');
+        try {
+            const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const response = await fetch(`${API_BASE_URL}/api/auth/check-email`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            const data = await response.json();
+            if (data.success) {
+                setSent(true);
+            } else {
+                setError(data.message);
+            }
+        } catch (err) {
+            setError('Server error');
+        }
     };
 
     const handleBackToLogin = () => {
         setSent(false);
         setEmail('');
+        setError('');
         closeForgotPassword();
         openLogin();
     };
@@ -23,6 +40,7 @@ const ForgotPasswordModal = () => {
     const handleClose = () => {
         setSent(false);
         setEmail('');
+        setError('');
         closeForgotPassword();
     };
 
@@ -47,7 +65,7 @@ const ForgotPasswordModal = () => {
                 </button>
 
                 <div className="login-header" style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                    <img src={ccLogo} alt="CodeChef" className="login-logo" style={{ width: '60px', marginBottom: '1rem', animation: 'float 3s ease-in-out infinite' }} />
+                    <img src={ccLogo} alt="CodeChef" className="login-logo" style={{ width: '95px', marginBottom: '1rem', animation: 'float 3s ease-in-out infinite' }} />
                     <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Forgot Password</h2>
                     <p style={{ color: 'var(--text-secondary)' }}>Reset your account password</p>
                 </div>
@@ -80,6 +98,15 @@ const ForgotPasswordModal = () => {
                         </button>
                     </p>
                 </form>
+
+                {error && (
+                    <div style={{
+                        marginTop: '1rem', padding: '1rem', borderRadius: '0.5rem', textAlign: 'center',
+                        color: 'var(--accent-error, #ef4444)', background: 'rgba(239, 68, 68, 0.1)'
+                    }}>
+                        {error}
+                    </div>
+                )}
 
                 {sent && (
                     <div style={{

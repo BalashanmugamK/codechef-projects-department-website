@@ -3,44 +3,58 @@ import { useAuth } from '../../context/AuthContext';
 import ccLogo from '../../assets/cc.svg';
 
 const AdminLoginModal = () => {
-    const { isAdminLoginOpen, closeAdminLogin, login, getAdmins, openAdminDashboard } = useAuth();
+    const { isAdminLoginOpen, closeAdminLogin, adminLogin, getAdmins, openAdminDashboard } = useAuth();
     const [email, setEmail] = useState('');
+    const [isClosing, setIsClosing] = useState(false);
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setIsLoading(true);
 
-        const admins = getAdmins();
-        const admin = admins.find(a => a.email === email && a.password === password);
-
-        if (admin) {
-            login({ ...admin, role: 'admin' });
-            closeAdminLogin();
-            openAdminDashboard();
-            setEmail('');
-            setPassword('');
-        } else {
-            setError('Invalid admin credentials');
+        try {
+            const result = await adminLogin(email, password);
+            if (result.success) {
+                closeAdminLogin();
+                openAdminDashboard();
+                setEmail('');
+                setPassword('');
+            } else {
+                setError(result.message || 'Invalid admin credentials');
+            }
+        } catch (err) {
+            setError(err.message || 'Invalid admin credentials');
+        } finally {
+            setIsLoading(false);
         }
+    };
+
+    const closeWithAnimation = () => {
+        setIsClosing(true);
+        window.setTimeout(() => {
+            setIsClosing(false);
+            closeAdminLogin();
+        }, 260);
     };
 
     if (!isAdminLoginOpen) return null;
 
     return (
-        <div className="modal-overlay" onClick={closeAdminLogin} style={{
+        <div className={`modal-overlay ${isClosing ? 'modal-closing' : ''}`} onClick={closeWithAnimation} style={{
             display: 'flex', position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
             background: 'rgba(0,0,0,0.5)', zIndex: 1000, justifyContent: 'center', alignItems: 'center',
-            animation: 'fadeIn 0.3s ease-out'
+            animation: isClosing ? 'none' : 'fadeIn 0.3s ease-out'
         }}>
             <div className="modal-content login-box" onClick={(e) => e.stopPropagation()} style={{
                 background: 'var(--bg-secondary)', padding: '2rem', borderRadius: '12px',
                 width: '90%', maxWidth: '420px', position: 'relative',
                 animation: 'modalIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
             }}>
-                <button className="close-modal" onClick={closeAdminLogin} style={{
+                <button className="close-modal" onClick={closeWithAnimation} style={{
                     position: 'absolute', top: '14px', right: '18px', background: 'transparent', border: 'none',
                     color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.25rem'
                 }}>
@@ -48,7 +62,7 @@ const AdminLoginModal = () => {
                 </button>
 
                 <div className="login-header" style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                    <img src={ccLogo} alt="CodeChef" className="login-logo" style={{ width: '60px', marginBottom: '1rem', animation: 'float 3s ease-in-out infinite' }} />
+                    <img src={ccLogo} alt="CodeChef" className="login-logo" style={{ width: '95px', marginBottom: '1rem', animation: 'float 3s ease-in-out infinite' }} />
                     <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Admin Login</h2>
                     <p style={{ color: 'var(--text-secondary)' }}>CodeChef Projects Department</p>
                 </div>
@@ -107,8 +121,8 @@ const AdminLoginModal = () => {
                         </div>
                     </div>
 
-                    <button type="submit" className="btn btn-primary btn-block" style={{ width: '100%', padding: '0.75rem', fontSize: '1rem' }}>
-                        Login
+                    <button type="submit" className="btn btn-primary btn-block" style={{ width: '100%', padding: '0.75rem', fontSize: '1rem' }} disabled={isLoading}>
+                        {isLoading ? 'Logging in...' : 'Login'}
                     </button>
                 </form>
             </div>

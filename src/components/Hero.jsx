@@ -3,36 +3,39 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Hero = () => {
-    // Typing animation state
-    const [displayedLines, setDisplayedLines] = useState([
-        [{ char: 'c', color: '#ec2395' }, { char: 'o', color: '#ec2395' }, { char: 'n', color: '#ec2395' }, { char: 's', color: '#ec2395' }, { char: 't', color: '#ec2395' }, { char: ' ', color: '#ffffff' }, { char: 'P', color: '#45d9fa' }, { char: 'r', color: '#45d9fa' }, { char: 'o', color: '#45d9fa' }, { char: 'j', color: '#45d9fa' }, { char: 'e', color: '#45d9fa' }, { char: 'c', color: '#45d9fa' }, { char: 't', color: '#45d9fa' }, { char: 's', color: '#45d9fa' }, { char: ' ', color: '#ffffff' }, { char: '=', color: '#ec2395' }, { char: ' ', color: '#ffffff' }, { char: '{', color: '#ec2395' }],
-    ]);
-    const [typingActive, setTypingActive] = useState(true);
     const codeRef = useRef(null);
-
+    const cursorRef = useRef(null);
     const [content, setContent] = useState({
         heroTitle: 'Projects Department',
         heroSubtitle: 'Building real-world applications, research-driven solutions, and collaborative software systems'
     });
+    const [showLoginHint, setShowLoginHint] = useState(false);
+    const { user, openLogin } = useAuth();
+    const navigate = useNavigate();
 
-    // Load content from localStorage (Admin edits)
     useEffect(() => {
-        const storedContent = JSON.parse(localStorage.getItem('contentData')) || {};
-        if (storedContent.heroTitle || storedContent.heroSubtitle) {
-            setContent(prev => ({
-                ...prev,
-                heroTitle: storedContent.heroTitle || prev.heroTitle,
-                heroSubtitle: storedContent.heroSubtitle || prev.heroSubtitle
-            }));
-        }
+        // Legacy hero copy from static version for consistent branding
+        setContent({
+            heroTitle: 'Projects Department',
+            heroSubtitle: 'Building real-world applications, research-driven solutions, and collaborative software systems'
+        });
     }, []);
 
     const codeLines = [
+        "const Projects = {",
         "  innovation: 'limitless',",
         "  collaboration: 'essential',",
         "  impact: 'global'",
         "};"
     ];
+
+    const getColorForToken = useCallback((token) => {
+        if (/^(const|let|var)$/.test(token)) return '#ec2395';
+        if (/^[A-Z]/.test(token)) return '#45d9fa';
+        if (/^[a-z_]/.test(token)) return '#00ff88';
+        if (/^['"]/.test(token)) return '#ffa500';
+        return '#ffffff';
+    }, []);
 
     const tokenizeLine = useCallback((line) => {
         const tokens = [];
@@ -42,12 +45,14 @@ const Hero = () => {
 
         for (let i = 0; i < line.length; i++) {
             const char = line[i];
+
             if ((char === '"' || char === "'") && !inString) {
-                if (current) tokens.push({ text: current, color: getColor(current) });
-                current = char;
+                if (current) tokens.push({ text: current, color: getColorForToken(current) });
+                current = '';
                 inString = true;
                 stringChar = char;
-            } else if (char === stringChar && inString) {
+                current += char;
+            } else if (char === stringChar && inString && line[i - 1] !== '\\') {
                 current += char;
                 tokens.push({ text: current, color: '#ffa500' });
                 current = '';
@@ -55,79 +60,125 @@ const Hero = () => {
             } else if (inString) {
                 current += char;
             } else if (/[\s:{}[\]=,;]/.test(char)) {
-                if (current) tokens.push({ text: current, color: getColor(current) });
+                if (current) tokens.push({ text: current, color: getColorForToken(current) });
                 tokens.push({ text: char, color: '#8c00ff' });
                 current = '';
             } else {
                 current += char;
             }
         }
-        if (current) tokens.push({ text: current, color: getColor(current) });
+        if (current) tokens.push({ text: current, color: getColorForToken(current) });
         return tokens;
+    }, [getColorForToken]);
+
+    const updateCursorPosition = useCallback(() => {
+        if (!cursorRef.current || !codeRef.current) return;
+        
+        const anchor = codeRef.current.querySelector('.caret-anchor');
+        const card = codeRef.current;
+
+        if (!anchor) {
+            cursorRef.current.style.left = '12px';
+            cursorRef.current.style.top = '12px';
+            return;
+        }
+
+        requestAnimationFrame(() => {
+            const anchorRect = anchor.getBoundingClientRect();
+            const cardRect = card.getBoundingClientRect();
+
+            const left = Math.max(8, anchorRect.left - cardRect.left + anchorRect.width);
+            const top = Math.max(8, anchorRect.top - cardRect.top);
+
+            cursorRef.current.style.left = left + 'px';
+            cursorRef.current.style.top = top + 'px';
+
+            if (cursorRef.current.style.opacity === '0') {
+                cursorRef.current.style.opacity = '1';
+            }
+        });
     }, []);
+
+    const wait = (ms) => new Promise((res) => setTimeout(res, ms));
 
     useEffect(() => {
         let mounted = true;
 
-        const typeLoop = async () => {
-            await new Promise(r => setTimeout(r, 1000)); // Initial delay
+        const typeBlock = async () => {
+            if (!codeRef.current) return;
+            
+            const preElement = codeRef.current.querySelector('.code-output');
+            if (!preElement) return;
+            
+            // Clear content but keep the cursor
+            preElement.textContent = '';
+            
+            for (let lineIdx = 0; lineIdx < codeLines.length; lineIdx++) {
+                const line = codeLines[lineIdx];
+                const tokens = tokenizeLine(line);
 
-            // We start with the first line already 'typed'
-            const baseLines = [
-                [{ char: 'c', color: '#ec2395' }, { char: 'o', color: '#ec2395' }, { char: 'n', color: '#ec2395' }, { char: 's', color: '#ec2395' }, { char: 't', color: '#ec2395' }, { char: ' ', color: '#ffffff' }, { char: 'P', color: '#45d9fa' }, { char: 'r', color: '#45d9fa' }, { char: 'o', color: '#45d9fa' }, { char: 'j', color: '#45d9fa' }, { char: 'e', color: '#45d9fa' }, { char: 'c', color: '#45d9fa' }, { char: 't', color: '#45d9fa' }, { char: 's', color: '#45d9fa' }, { char: ' ', color: '#ffffff' }, { char: '=', color: '#ec2395' }, { char: ' ', color: '#ffffff' }, { char: '{', color: '#ec2395' }]
-            ];
+                for (let tokenIdx = 0; tokenIdx < tokens.length; tokenIdx++) {
+                    const token = tokens[tokenIdx];
+                    
+                    for (let charIdx = 0; charIdx < token.text.length; charIdx++) {
+                        if (!mounted) return;
+                        
+                        const char = token.text[charIdx];
+                        const charSpan = document.createElement('span');
+                        charSpan.style.color = token.color;
+                        charSpan.textContent = char;
+                        preElement.appendChild(charSpan);
 
-            while (mounted) {
-                // Reset to just the first line
-                setDisplayedLines([...baseLines]);
-                await new Promise(r => setTimeout(r, 500));
-
-                let currentLines = [...baseLines];
-
-                for (let i = 0; i < codeLines.length; i++) {
-                    const line = codeLines[i];
-                    const tokens = tokenizeLine(line);
-                    let lineChars = [];
-
-                    // Add empty line for current typing
-                    currentLines.push([]);
-                    setDisplayedLines([...currentLines]);
-
-                    for (const token of tokens) {
-                        for (const char of token.text) {
-                            if (!mounted) return;
-                            lineChars.push({ char, color: token.color });
-
-                            // Update the last line with new char
-                            const updatedLines = [...currentLines];
-                            updatedLines[updatedLines.length - 1] = [...lineChars];
-                            setDisplayedLines(updatedLines);
-
-                            // Random typing speed
-                            await new Promise(r => setTimeout(r, 30 + Math.random() * 50));
+                        // Ensure caret anchor exists at end
+                        let anchor = preElement.querySelector('.caret-anchor');
+                        if (!anchor) {
+                            anchor = document.createElement('span');
+                            anchor.className = 'caret-anchor';
+                            anchor.style.display = 'inline-block';
+                            anchor.style.width = '0px';
+                            anchor.style.height = '1em';
+                            preElement.appendChild(anchor);
+                        } else {
+                            preElement.appendChild(anchor);
                         }
-                    }
 
-                    // Line finished
-                    currentLines = [...currentLines];
-                    currentLines[currentLines.length - 1] = lineChars; // Ensure final state
-                    await new Promise(r => setTimeout(r, 400)); // Pause at end of line
+                        updateCursorPosition();
+                        await wait(30 + Math.random() * 40);
+                    }
                 }
 
-                // Wait before restarting
-                await new Promise(r => setTimeout(r, 3000));
+                // Add line break
+                if (lineIdx < codeLines.length - 1) {
+                    preElement.appendChild(document.createTextNode('\n'));
+                }
+
+                await wait(600);
+            }
+        };
+
+        const clearBlock = async () => {
+            if (!codeRef.current) return;
+            const preElement = codeRef.current.querySelector('.code-output');
+            if (!preElement) return;
+            preElement.textContent = '';
+            updateCursorPosition();
+        };
+
+        const typeLoop = async () => {
+            await wait(1000);
+
+            while (mounted) {
+                await typeBlock();
+                await wait(2000);
+                await clearBlock();
+                await wait(600);
             }
         };
 
         typeLoop();
         return () => { mounted = false; };
-    }, [tokenizeLine]);
+    }, [tokenizeLine, updateCursorPosition]);
 
-    const { user, openLogin } = useAuth();
-    const navigate = useNavigate();
-    const [showLoginHint, setShowLoginHint] = useState(false);
-
-    // Parallax Animation for Gradient Blobs
     useEffect(() => {
         const handleScroll = () => {
             const scrolled = window.pageYOffset;
@@ -138,17 +189,22 @@ const Hero = () => {
             });
         };
 
-        window.addEventListener('scroll', handleScroll);
+        window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    const handleJoinClick = (e) => {
-        e.preventDefault();
+    const handleJoinClick = (event) => {
+        event.preventDefault();
+        if (user && user.role === 'admin') {
+            // Admins are already part of the team, show message
+            alert('You are already an admin and part of the team!');
+            return;
+        }
         if (user) {
             navigate('/recruitment');
-        } else {
-            setShowLoginHint(true);
+            return;
         }
+        openLogin();
     };
 
     return (
@@ -165,9 +221,7 @@ const Hero = () => {
                         <span className="text-animate word-1">Welcome to</span>
                         <span className="text-animate word-2 highlight">{content.heroTitle}</span>
                     </h1>
-                    <p className="hero-subtitle">
-                        {content.heroSubtitle}
-                    </p>
+                    <p className="hero-subtitle">{content.heroSubtitle}</p>
                     <div className="hero-stats">
                         <div className="stat-item">
                             <span className="stat-number">50+</span>
@@ -183,24 +237,16 @@ const Hero = () => {
                         </div>
                     </div>
                     <div className="hero-buttons">
-                        <a href="/recruitment" onClick={handleJoinClick} className="btn btn-primary btn-lg">Join Our Team</a>
+                        <Link id="joinTeamBtn" to="/recruitment" onClick={handleJoinClick} className="btn btn-primary btn-lg">Join Our Team</Link>
                         <a href="#projects" className="btn btn-secondary btn-lg">Explore Projects</a>
                     </div>
                 </div>
 
                 <div className="hero-visual">
-                    <div className="code-card animate-float" ref={codeRef}>
-                        <pre className="code-output">
-                            {displayedLines.map((line, lineIdx) => (
-                                <span key={lineIdx}>
-                                    {line.map((ch, charIdx) => (
-                                        <span key={charIdx} style={{ color: ch.color }}>{ch.char}</span>
-                                    ))}
-                                    {lineIdx < displayedLines.length - 1 && '\n'}
-                                </span>
-                            ))}
-                            <span className="typing-cursor">▍</span>
+                    <div className="code-card" ref={codeRef} style={{ position: 'relative' }}>
+                        <pre className="code-output" style={{ margin: 0 }}>
                         </pre>
+                        <span className="typing-cursor" ref={cursorRef} aria-hidden="true" style={{ position: 'absolute', left: '12px', top: '12px' }}>▍</span>
                     </div>
                 </div>
             </div>
@@ -212,29 +258,14 @@ const Hero = () => {
                 </div>
             </div>
 
-            {/* Login Required Modal for Recruitment */}
             {showLoginHint && (
-                <div className="modal-overlay" onClick={() => setShowLoginHint(false)} style={{
-                    display: 'flex', position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-                    background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)', zIndex: 2000,
-                    justifyContent: 'center', alignItems: 'center', animation: 'fadeIn 0.3s ease-out'
-                }}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{
-                        background: 'var(--bg-secondary)', padding: '2.5rem', borderRadius: '16px',
-                        width: '90%', maxWidth: '400px', textAlign: 'center', position: 'relative',
-                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                        animation: 'modalIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
-                    }}>
-                        <button onClick={() => setShowLoginHint(false)} style={{
-                            position: 'absolute', top: '15px', right: '15px', background: 'transparent',
-                            border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text-secondary)'
-                        }}>&times;</button>
-                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔒</div>
-                        <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Login Required</h3>
-                        <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
-                            You must be logged in to access the recruitment application process.
-                        </p>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div className="modal-overlay" onClick={() => setShowLoginHint(false)}>
+                    <div className="modal-content hero-login-modal" onClick={(event) => event.stopPropagation()}>
+                        <button className="close-modal" onClick={() => setShowLoginHint(false)} aria-label="Close login prompt">&times;</button>
+                        <div className="hero-login-icon" aria-hidden="true">Login</div>
+                        <h3 className="hero-login-title">Login Required</h3>
+                        <p className="hero-login-text">You must be logged in to access the recruitment application process.</p>
+                        <div className="hero-login-actions">
                             <button className="btn btn-primary btn-block" onClick={() => { setShowLoginHint(false); openLogin(); }}>
                                 Login Now
                             </button>
@@ -248,13 +279,5 @@ const Hero = () => {
         </section>
     );
 };
-
-function getColor(token) {
-    if (/^const|let|var$/.test(token)) return '#ec2395';
-    if (/^[A-Z]/.test(token)) return '#45d9fa';
-    if (/^[a-z_]/.test(token)) return '#00ff88';
-    if (/^['"]/.test(token)) return '#ffa500';
-    return '#ffffff';
-}
 
 export default Hero;

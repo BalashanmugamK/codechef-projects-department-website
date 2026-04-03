@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   /* Light Mode Colors */
   --bg-primary: #ffffff;
   --bg-secondary: #f8f9fa;
@@ -3747,6 +3747,393 @@ body {
   opacity: 0;
   animation: fadeInSlideUp 0.8s ease-out 0.5s forwards,
     gradientShift 3s ease-in-out 1.5s infinite;
+}
+
+/* ============================================
+   RECRUITMENT PAGE STYLES
+   ============================================ */
+
+.recruitment-page {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+}
+
+.recruitment-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-2xl) var(--spacing-lg);
+  animation: fadeInUp 0.8s ease-out;
+}
+
+.blurred-content {
+  filter: blur(5px);
+  pointer-events: none;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: var(--accent-primary);
+  text-decoration: none;
+  font-weight: 500;
+  margin-bottom: var(--spacing-xl);
+  transition: color var(--transition-fast);
+}
+
+.back-link:hover {
+  color: var(--accent-primary-hover);
+}
+
+.back-link span {
+  font-size: var(--font-size-lg);
+}
+
+.recruitment-header {
+  text-align: center;
+  margin-bottom: var(--spacing-3xl);
+}
+
+.recruitment-header h1 {
+  font-size: var(--font-size-4xl);
+  font-weight: 700;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: var(--spacing-lg);
+  animation: fadeInUp 0.8s ease-out 0.2s both;
+}
+
+.recruitment-header p {
+  font-size: var(--font-size-lg);
+  color: var(--text-secondary);
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+  animation: fadeInUp 0.8s ease-out 0.4s both;
+}
+
+.recruitment-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-3xl);
+  margin-bottom: var(--spacing-3xl);
+}
+
+.recruitment-info {
+  animation: slideInLeft 0.8s ease-out 0.6s both;
+}
+
+.recruitment-info h2 {
+  font-size: var(--font-size-2xl);
+  font-weight: 600;
+  margin-bottom: var(--spacing-lg);
+  color: var(--text-primary);
+}
+
+.recruitment-info p {
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: var(--spacing-xl);
+}
+
+.recruitment-subheading {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin-bottom: var(--spacing-md);
+  color: var(--text-primary);
+}
+
+.requirements-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.requirements-list li {
+  padding: var(--spacing-sm) 0;
+  padding-left: var(--spacing-lg);
+  position: relative;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.requirements-list li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--accent-success);
+  font-weight: bold;
+}
+
+.recruitment-form-container {
+  animation: slideInRight 0.8s ease-out 0.8s both;
+}
+
+.recruitment-status-card {
+  background: var(--bg-secondary);
+  padding: var(--spacing-2xl);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-color);
+  text-align: center;
+  box-shadow: var(--shadow-md);
+  animation: scaleIn 0.6s ease-out both;
+}
+
+.recruitment-status-card h2 {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  margin-bottom: var(--spacing-md);
+  color: var(--text-primary);
+}
+
+.recruitment-status-card p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.recruitment-success-card {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%);
+  border-color: var(--accent-success);
+}
+
+.recruitment-success-icon {
+  font-size: var(--font-size-3xl);
+  margin-bottom: var(--spacing-md);
+}
+
+.booking-panel {
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-xl);
+  border-top: 1px solid var(--border-color);
+}
+
+.booking-panel h3 {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin-bottom: var(--spacing-md);
+  color: var(--text-primary);
+}
+
+.booking-panel p {
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.booking-empty {
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.booking-slots {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.booking-slot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  transition: border-color var(--transition-fast);
+}
+
+.booking-slot:hover {
+  border-color: var(--accent-primary);
+}
+
+.booking-slot.is-taken {
+  opacity: 0.6;
+  background: var(--bg-tertiary);
+}
+
+.booking-slot-main {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.booking-slot input[type="radio"] {
+  margin: 0;
+}
+
+.booking-slot-status {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+}
+
+.booking-slot:not(.is-taken) .booking-slot-status {
+  background: var(--accent-success);
+  color: white;
+}
+
+.booking-slot.is-taken .booking-slot-status {
+  background: var(--accent-danger);
+  color: white;
+}
+
+.booking-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: center;
+}
+
+.booking-message {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  text-align: center;
+}
+
+.booking-message.success {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--accent-success);
+  border: 1px solid var(--accent-success);
+}
+
+.note-box {
+  background: var(--accent-primary-light);
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  text-align: center;
+  margin-top: var(--spacing-2xl);
+  animation: fadeInUp 0.8s ease-out 1s both;
+}
+
+.note-box strong {
+  color: var(--accent-primary);
+}
+
+.recruitment-error {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--accent-danger);
+  border: 1px solid var(--accent-danger);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  font-weight: 500;
+}
+
+.recruitment-login-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.recruitment-login-modal {
+  background: var(--bg-secondary);
+  padding: var(--spacing-2xl);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-xl);
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  animation: scaleIn 0.4s ease-out;
+}
+
+.recruitment-login-modal h2 {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  margin-bottom: var(--spacing-lg);
+  color: var(--text-primary);
+}
+
+.recruitment-login-modal p {
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xl);
+  line-height: 1.6;
+}
+
+.recruitment-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: var(--accent-success);
+  color: white;
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: 1001;
+  max-width: 400px;
+  font-weight: 500;
+}
+
+/* Responsive Design for Recruitment */
+@media (max-width: 768px) {
+  .recruitment-container {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-2xl);
+  }
+
+  .recruitment-header h1 {
+    font-size: var(--font-size-3xl);
+  }
+
+  .recruitment-header p {
+    font-size: var(--font-size-base);
+  }
+
+  .recruitment-info h2 {
+    font-size: var(--font-size-xl);
+  }
+
+  .booking-actions {
+    flex-direction: column;
+  }
+
+  .booking-slot {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+
+  .booking-slot-main {
+    width: 100%;
+  }
+
+  .recruitment-form {
+    padding: var(--spacing-lg);
+  }
+}
+
+@media (max-width: 480px) {
+  .recruitment-wrapper {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+
+  .recruitment-header {
+    margin-bottom: var(--spacing-2xl);
+  }
+
+  .recruitment-status-card {
+    padding: var(--spacing-lg);
+  }
+
+  .note-box {
+    padding: var(--spacing-md);
+  }
 }
 
 .hero-title .word-2.highlight {

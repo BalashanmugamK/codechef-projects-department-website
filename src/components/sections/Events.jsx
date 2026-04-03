@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import { events } from '../../data/mockData';
+import { getAnimationDelayStyle } from '../../utils/animationUtils';
 
 const Events = () => {
     const [filter, setFilter] = useState('upcoming');
@@ -42,7 +43,7 @@ const Events = () => {
                         <div
                             className={`event-card ${isUpcoming ? 'event-upcoming' : 'event-past'}`}
                             key={event.id}
-                            style={{ animationDelay: `${idx * 0.1}s` }}
+                            style={getAnimationDelayStyle(idx)}
                         >
                             <div className="event-header">
                                 <span className="event-chip">

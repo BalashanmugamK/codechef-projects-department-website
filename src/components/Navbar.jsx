@@ -37,6 +37,20 @@ const Navbar = () => {
 
     const closeMenu = () => setIsOpen(false);
 
+    const handleUserLogin = () => {
+        if (user && user.role === 'admin') {
+            const confirmLogout = window.confirm(
+                'You are currently logged in as admin. Logout admin session to open User Login?'
+            );
+            if (confirmLogout) {
+                logout();
+                openLogin();
+            }
+            return;
+        }
+        openLogin();
+    };
+
     const handleNavClick = (e, id) => {
         closeMenu();
         if (location.pathname === '/') {
@@ -83,7 +97,7 @@ const Navbar = () => {
                             {link.name}
                         </a>
                     ))}
-                    <a href="https://codechefvitcc.vercel.app/" target="_blank" rel="noopener noreferrer" className="nav-link nav-external">
+                    <a href="https://codechefvitcc.vercel.app/" target="_blank" rel="noopener noreferrer" className="nav-link">
                         Main Club ↗
                     </a>
                 </div>
@@ -123,7 +137,7 @@ const Navbar = () => {
                             </>
                         ) : (
                             <>
-                                <button className="btn btn-secondary" onClick={openLogin} id="userLoginBtn">
+                                <button className="btn btn-secondary" onClick={handleUserLogin} id="userLoginBtn">
                                     👤 User Login
                                 </button>
                                 <button className="btn btn-primary" onClick={openAdminLogin} id="loginBtn">

@@ -11,13 +11,23 @@ const IconSettings = ({ size = 16 }) => <svg width={size} height={size} viewBox=
 const IconUserPlus = ({ size = 16 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" /></svg>;
 const IconExternalLink = ({ size = 14 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>;
 
+// Vite environment configuration for API calls
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const AdminModal = ({ isOpen, onClose }) => {
     const [activeTab, setActiveTab] = useState('members');
-    const { user, logout } = useAuth();
+    const { user, logout, getAdmins, addAdmin, updateAdminPassword } = useAuth();
 
     // Force re-render helper to update lists
     const [tick, setTick] = useState(0);
     const forceUpdate = () => setTick(t => t + 1);
+
+    // Backend-managed data states
+    const [interviewSlots, setInterviewSlots] = useState([]);
+    const [applications, setApplications] = useState([]);
+    const [appMembers, setAppMembers] = useState({});
+    const [adminAccounts, setAdminAccounts] = useState([]);
+
 
     // Settings Tab State
     const [currentPassword, setCurrentPassword] = useState('');
@@ -28,6 +38,11 @@ const AdminModal = ({ isOpen, onClose }) => {
     const [passwordReqs, setPasswordReqs] = useState({
         length: false, upper: false, lower: false, number: false, special: false
     });
+
+    // System config and broadcast
+    const [systemConfig, setSystemConfig] = useState({ recruitmentOpen: true, maintenanceMode: false });
+    const [broadcastText, setBroadcastText] = useState('');
+    const [broadcastMsg, setBroadcastMsg] = useState('');
 
     // Interview Slots State
     const [slotDate, setSlotDate] = useState('');
@@ -45,7 +60,7 @@ const AdminModal = ({ isOpen, onClose }) => {
 
     // MEMBERS Management State
     const [memberForm, setMemberForm] = useState({
-        name: '', email: '', role: '', group: 'Core Team', tenure: '2023-2024',
+        name: '', email: '', role: '', group: 'Core Team', tenure: '2025-26',
         linkedin: '', github: '', photo: ''
     });
     const [membersMsg, setMembersMsg] = useState('');
@@ -72,6 +87,58 @@ const AdminModal = ({ isOpen, onClose }) => {
             setContentForm(prev => ({ ...prev, ...savedContent }));
         }
     }, [isOpen]);
+
+    useEffect(() => {
+        // Load dynamic data from backend
+        const loadAllData = async () => {
+            try {
+                const slotsRes = await fetch(`${API_URL}/api/interview-slots`);
+                const slotsData = await slotsRes.json();
+                if (slotsData.success) setInterviewSlots(slotsData.slots || []);
+
+                const appsRes = await fetch(`${API_URL}/api/applications`);
+                const appsData = await appsRes.json();
+                if (appsData.success) setApplications(appsData.applications || []);
+
+                const membersRes = await fetch(`${API_URL}/api/members`);
+                const membersData = await membersRes.json();
+                if (membersData.success) {
+                    const byTenureGroup = {};
+                    membersData.members.forEach(m => {
+                        const tenure = m.tenure || '2023-2024';
+                        const group = m.group || 'Core Team';
+                        byTenureGroup[tenure] = byTenureGroup[tenure] || {};
+                        byTenureGroup[tenure][group] = byTenureGroup[tenure][group] || [];
+                        byTenureGroup[tenure][group].push(m);
+                    });
+                    setAppMembers(byTenureGroup);
+                }
+
+                // System config (recruitment + maintenance toggles)
+                try {
+                    const systemRes = await fetch(`${API_URL}/api/system`);
+                    const systemData = await systemRes.json();
+                    if (systemData.success && systemData.system) {
+                        setSystemConfig({
+                            recruitmentOpen: systemData.system.recruitmentOpen ?? true,
+                            maintenanceMode: systemData.system.maintenanceMode ?? false
+                        });
+                    }
+                } catch (systemErr) {
+                    console.error('Failed to fetch system config:', systemErr);
+                }
+
+                const adminsData = await getAdmins();
+                if (Array.isArray(adminsData)) setAdminAccounts(adminsData);
+            } catch (error) {
+                console.error('Admin modal data load error:', error);
+            }
+        };
+
+        if (isOpen) {
+            loadAllData();
+        }
+    }, [isOpen, tick, getAdmins]);
 
     if (!isOpen) return null;
 
@@ -112,107 +179,190 @@ const AdminModal = ({ isOpen, onClose }) => {
         setAdminPwStrength(score);
     };
 
-    const handleChangePassword = (e) => {
+    const handleChangePassword = async (e) => {
         e.preventDefault();
         if (newPassword !== confirmPassword) { setSettingsMsg('Passwords do not match'); return; }
         if (passwordStrength < 3) { setSettingsMsg('Password is too weak'); return; }
-        const admins = JSON.parse(localStorage.getItem('adminAccounts')) || [];
-        const idx = admins.findIndex(a => a.email === user?.email);
-        if (idx === -1) { setSettingsMsg('Admin not found'); return; }
-        if (admins[idx].password !== currentPassword) { setSettingsMsg('Current password is wrong'); return; }
-        admins[idx].password = newPassword;
-        localStorage.setItem('adminAccounts', JSON.stringify(admins));
-        setSettingsMsg('✓ Password changed successfully');
-        setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
-        setPasswordStrength(0);
+
+        try {
+            const result = await updateAdminPassword(user?.email, currentPassword, newPassword);
+            if (result.success) {
+                setSettingsMsg('✓ Password changed successfully');
+                setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
+                setPasswordStrength(0);
+            } else {
+                setSettingsMsg(result.message || 'Failed to update password');
+            }
+        } catch (error) {
+            console.error('Change password error:', error);
+            setSettingsMsg('Failed to update password');
+        }
     };
 
-    const handleAddSlot = () => {
+    const handleAddSlot = async () => {
         if (!slotDate || !slotTime) { setSlotsMsg('Both date and time are required'); return; }
-        const interviewSlots = JSON.parse(localStorage.getItem('interviewSlots')) || [];
-        if (interviewSlots.find(s => s.date === slotDate && s.time === slotTime)) {
-            setSlotsMsg('This slot already exists'); return;
-        }
-        interviewSlots.push({ date: slotDate, time: slotTime });
-        localStorage.setItem('interviewSlots', JSON.stringify(interviewSlots));
-        setSlotsMsg(`✓ Slot added: ${slotDate} @ ${slotTime}`);
-        setSlotDate(''); setSlotTime('');
-        forceUpdate();
-    };
 
-    const handleRemoveSlot = (date, time) => {
-        let interviewSlots = JSON.parse(localStorage.getItem('interviewSlots')) || [];
-        interviewSlots = interviewSlots.filter(s => !(s.date === date && s.time === time));
-        localStorage.setItem('interviewSlots', JSON.stringify(interviewSlots));
-        setSlotsMsg('Slot removed');
-        forceUpdate();
-    };
-
-    const handleAcceptApp = (app, index) => {
-        if (window.confirm(`Accept ${app.name} as a member?`)) {
-            const currentApps = JSON.parse(localStorage.getItem('applications')) || [];
-            const newApps = currentApps.filter(a => a.timestamp !== app.timestamp);
-            localStorage.setItem('applications', JSON.stringify(newApps));
-            alert(`✓ ${app.name} has been accepted! Email notification sent.`);
-            forceUpdate();
+        try {
+            const response = await fetch(`${API_URL}/api/slots`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ date: slotDate, time: slotTime })
+            });
+            const data = await response.json();
+            if (response.ok && data.success) {
+                setSlotsMsg(`✓ Slot added: ${slotDate} @ ${slotTime}`);
+                setSlotDate(''); setSlotTime('');
+                forceUpdate();
+            } else {
+                setSlotsMsg(data.message || 'Failed to add slot');
+            }
+        } catch (error) {
+            console.error('Add slot error:', error);
+            setSlotsMsg('Failed to add slot');
         }
     };
 
-    const handleRejectApp = (app) => {
-        if (window.confirm(`Reject application for ${app.name}?`)) {
-            const currentApps = JSON.parse(localStorage.getItem('applications')) || [];
-            const newApps = currentApps.filter(a => a.timestamp !== app.timestamp);
-            localStorage.setItem('applications', JSON.stringify(newApps));
-            alert(`Application rejected.`);
-            forceUpdate();
+    const handleRemoveSlot = async (slotId) => {
+        try {
+            const response = await fetch(`${API_URL}/api/admin/interview-slots/${slotId}`, {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+            if (response.ok && data.success) {
+                setSlotsMsg('Slot removed');
+                forceUpdate();
+            } else {
+                setSlotsMsg(data.message || 'Failed to remove slot');
+            }
+        } catch (error) {
+            console.error('Remove slot error:', error);
+            setSlotsMsg('Failed to remove slot');
         }
     };
 
-    const handleAddAdmin = (e) => {
+    const handleAcceptApp = async (app) => {
+        if (!window.confirm(`Accept ${app.name} as a member?`)) return;
+
+        try {
+            const res = await fetch(`${API_URL}/api/admin/applications/${app._id || app.id}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                alert(`✓ ${app.name} has been accepted! Email notification sent.`);
+                setApplications(prev => prev.filter(a => (a._id || a.id) !== (app._id || app.id)));
+                // Optionally add member to members collection
+                await fetch(`${API_URL}/api/members`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: app.name,
+                        email: app.email,
+                        role: app.role || 'Member',
+                        group: app.group || 'Core Team',
+                        tenure: app.tenure || '2023-2024',
+                        linkedin: app.linkedin,
+                        github: app.github,
+                        photo: app.photo
+                    })
+                });
+                forceUpdate();
+            } else {
+                alert(data.message || 'Failed to accept application');
+            }
+        } catch (error) {
+            console.error('Accept application error:', error);
+            alert('Failed to accept application');
+        }
+    };
+
+    const handleRejectApp = async (app) => {
+        if (!window.confirm(`Reject application for ${app.name}?`)) return;
+
+        try {
+            const res = await fetch(`${API_URL}/api/admin/applications/${app._id || app.id}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                alert('Application rejected.');
+                setApplications(prev => prev.filter(a => (a._id || a.id) !== (app._id || app.id)));
+                forceUpdate();
+            } else {
+                alert(data.message || 'Failed to reject application');
+            }
+        } catch (error) {
+            console.error('Reject application error:', error);
+            alert('Failed to reject application');
+        }
+    };
+
+    const handleAddAdmin = async (e) => {
         e.preventDefault();
         if (!newAdminEmail || !newAdminPassword) { setAccountsMsg('Email and password are required'); return; }
         if (adminPwStrength < 3) { setAccountsMsg('Password is too weak'); return; }
-        const admins = JSON.parse(localStorage.getItem('adminAccounts')) || [];
-        if (admins.find(a => a.email === newAdminEmail)) {
-            setAccountsMsg('This email is already registered'); return;
+
+        try {
+            const result = await addAdmin({ email: newAdminEmail, password: newAdminPassword, role: 'admin' });
+            if (result.success) {
+                setAccountsMsg(`✓ Admin "${newAdminEmail}" added`);
+                setNewAdminEmail(''); setNewAdminPassword('');
+                setAdminPwStrength(0);
+                forceUpdate();
+            } else {
+                setAccountsMsg(result.message || 'Failed to add admin');
+            }
+        } catch (error) {
+            console.error('Add admin error:', error);
+            setAccountsMsg('Failed to add admin');
         }
-        admins.push({ email: newAdminEmail, name: newAdminEmail.split('@')[0], password: newAdminPassword });
-        localStorage.setItem('adminAccounts', JSON.stringify(admins));
-        setAccountsMsg(`✓ Admin "${newAdminEmail}" added`);
-        setNewAdminEmail(''); setNewAdminPassword('');
-        setAdminPwStrength(0);
-        forceUpdate();
     };
 
     // --- NEW: Handle Members ---
-    const handleAddMember = (e) => {
+    const handleAddMember = async (e) => {
         e.preventDefault();
-        const member = {
-            id: Date.now(),
+        const payload = {
             ...memberForm,
-            photo: memberForm.photo || 'https://via.placeholder.com/140/FF6B35/ffffff?text=' + memberForm.name.charAt(0)
+            photo: memberForm.photo || '' // Frontend will generate placeholder
         };
-        let members = JSON.parse(localStorage.getItem('appMembers')) || {};
-        if (!members[member.tenure]) members[member.tenure] = {};
-        if (!members[member.tenure][member.group]) members[member.tenure][member.group] = [];
-        members[member.tenure][member.group].push(member);
-        localStorage.setItem('appMembers', JSON.stringify(members));
-        setMembersMsg(`✓ ${member.name} added successfully!`);
-        setMemberForm({ name: '', email: '', role: '', group: 'Core Team', tenure: '2023-2024', linkedin: '', github: '', photo: '' });
-        forceUpdate();
+
+        try {
+            const response = await fetch(`${API_URL}/api/members`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+            if (response.ok && data.success) {
+                setMembersMsg(`✓ ${payload.name} added successfully!`);
+                setMemberForm({ name: '', email: '', role: '', group: 'Core Team', tenure: '2023-2024', linkedin: '', github: '', photo: '' });
+                forceUpdate();
+            } else {
+                setMembersMsg(data.message || 'Failed to add member');
+            }
+        } catch (error) {
+            console.error('Add member error:', error);
+            setMembersMsg('Failed to add member');
+        }
     };
 
-    const handleDeleteMember = (id, tenure, group) => {
+    const handleDeleteMember = async (id) => {
         if (!window.confirm('Are you sure you want to remove this member?')) return;
-        let members = JSON.parse(localStorage.getItem('appMembers')) || {};
-        if (members[tenure] && members[tenure][group]) {
-            members[tenure][group] = members[tenure][group].filter(m => m.id !== id);
-            if (members[tenure][group].length === 0) delete members[tenure][group];
-            if (Object.keys(members[tenure]).length === 0) delete members[tenure];
+        try {
+            const response = await fetch(`${API_URL}/api/members/${id}`, {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+            if (response.ok && data.success) {
+                setMembersMsg('✓ Member removed');
+                forceUpdate();
+            } else {
+                setMembersMsg(data.message || 'Failed to remove member');
+            }
+        } catch (error) {
+            console.error('Delete member error:', error);
+            setMembersMsg('Failed to remove member');
         }
-        localStorage.setItem('appMembers', JSON.stringify(members));
-        setMembersMsg('✓ Member removed');
-        forceUpdate();
     };
 
     // --- NEW: Handle Projects ---
@@ -244,11 +394,59 @@ const AdminModal = ({ isOpen, onClose }) => {
     };
 
     // --- NEW: Handle System ---
-    const handleSaveSystem = (key, val) => {
-        let contentData = JSON.parse(localStorage.getItem('contentData')) || {};
-        contentData[key] = val;
-        localStorage.setItem('contentData', JSON.stringify(contentData));
-        forceUpdate(); // Toggle visual switch
+    const handleSaveSystem = async (key, val) => {
+        try {
+            const newConfig = {
+                recruitmentOpen: systemConfig.recruitmentOpen,
+                maintenanceMode: systemConfig.maintenanceMode,
+                ...((key === 'recruitmentOpen') && { recruitmentOpen: val }),
+                ...((key === 'maintenanceMode') && { maintenanceMode: val })
+            };
+
+            const response = await fetch(`${API_URL}/api/system`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newConfig)
+            });
+            const data = await response.json();
+            if (response.ok && data.success) {
+                setSystemConfig({
+                    recruitmentOpen: data.system.recruitmentOpen,
+                    maintenanceMode: data.system.maintenanceMode
+                });
+                setSettingsMsg('System setting saved.');
+            } else {
+                setSettingsMsg(data.message || 'Failed to update system setting');
+            }
+        } catch (err) {
+            console.error('System update error:', err);
+            setSettingsMsg('Failed to update system setting');
+        }
+    };
+
+    const handleSendBroadcast = async () => {
+        if (!broadcastText.trim()) {
+            setBroadcastMsg('Enter a message before broadcasting.');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/api/announce`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: broadcastText.trim() })
+            });
+            const data = await response.json();
+            if (response.ok && data.success) {
+                setBroadcastMsg('✓ Broadcast sent successfully.');
+                setBroadcastText('');
+            } else {
+                setBroadcastMsg(data.message || 'Failed to send broadcast');
+            }
+        } catch (err) {
+            console.error('Broadcast send error:', err);
+            setBroadcastMsg('Failed to send broadcast');
+        }
     };
 
     const getStrengthColor = (score) => {
@@ -294,45 +492,96 @@ const AdminModal = ({ isOpen, onClose }) => {
         </div>
     );
 
-    // Get data from localStorage
-    const interviewSlots = JSON.parse(localStorage.getItem('interviewSlots')) || [];
-    const currentAdmins = JSON.parse(localStorage.getItem('adminAccounts')) || [];
-    const applications = JSON.parse(localStorage.getItem('applications')) || [];
+    // Get persisted data from localStorage for legacy fields that are not yet backend-powered
     const bookedInterviews = JSON.parse(localStorage.getItem('bookings')) || [];
-    const appMembers = JSON.parse(localStorage.getItem('appMembers')) || {};
     const appProjects = JSON.parse(localStorage.getItem('appProjects')) || [];
     const contentData = JSON.parse(localStorage.getItem('contentData')) || {};
 
     return (
-        <div className={`modal modal-admin ${isOpen ? 'active' : ''}`} onClick={(e) => {
+        <div
+          className={`modal modal-admin ${isOpen ? 'active' : ''}`}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '16px',
+            overflow: 'auto'
+          }}
+          onClick={(e) => {
             if (e.target === e.currentTarget) onClose();
-        }}>
-            <div className="admin-modal-content">
-                {/* Header */}
-                <div className="admin-header">
-                    <h2>Admin Dashboard</h2>
-                    <div className="admin-header-controls">
-                        <span className="admin-user">{user?.email || 'admin@codechef-projects.com'}</span>
-                        <button className="btn btn-danger" onClick={logout}>Logout</button>
-                        <button className="close-modal" onClick={onClose}>&times;</button>
-                    </div>
+          }}
+        >
+          <div
+            className="admin-modal-content"
+            style={{
+              background: 'var(--bg-primary)',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '900px',
+              maxHeight: '90vh',
+              overflow: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+            }}
+          >
+            {/* Header */}
+            <div className="admin-header" style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-color)', flexShrink: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                <h2 style={{ margin: 0, fontSize: '1.5rem' }}>Admin Dashboard</h2>
+                <div className="admin-header-controls" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <span className="admin-user" style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>{user?.email || 'admin@codechef-projects.com'}</span>
+                  <button className="btn btn-danger" onClick={logout} style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>Logout</button>
+                  <button className="close-modal" onClick={onClose} style={{ fontSize: '1.5rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}>&times;</button>
                 </div>
+              </div>
+            </div>
 
-                {/* Tabs */}
-                <div className="admin-tabs-container">
-                    {tabs.map(tab => (
-                        <button
-                            key={tab.key}
-                            className={`admin-tab-btn ${activeTab === tab.key ? 'active' : ''}`}
-                            onClick={() => setActiveTab(tab.key)}
-                        >
-                            {tab.icon} {tab.label}
-                        </button>
-                    ))}
-                </div>
+            {/* Tabs */}
+            <div
+              className="admin-tabs-container"
+              style={{
+                display: 'flex',
+                gap: '0.5rem',
+                padding: '1rem',
+                borderBottom: '1px solid var(--border-color)',
+                overflowX: 'auto',
+                flexShrink: 0
+              }}
+            >
+              {tabs.map(tab => (
+                <button
+                  key={tab.key}
+                  className={`admin-tab-btn ${activeTab === tab.key ? 'active' : ''}`}
+                  onClick={() => setActiveTab(tab.key)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.6rem 1rem',
+                    borderRadius: '8px',
+                    background: activeTab === tab.key ? 'var(--accent-primary)' : 'transparent',
+                    color: activeTab === tab.key ? '#fff' : 'var(--text-secondary)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    transition: 'background 0.3s',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <span className="admin-tab-icon">{tab.icon}</span>
+                  <span className="admin-tab-label">{tab.label}</span>
+                </button>
+              ))}
+            </div>
 
-                {/* Content */}
-                <div className="admin-content">
+            {/* Content - Scrollable */}
+            <div className="admin-content" style={{ flex: 1, overflow: 'auto', padding: '1.5rem' }}>
                     {/* ========== Members Tab ========== */}
                     {activeTab === 'members' && (
                         <div className="admin-tab-content active">
@@ -342,7 +591,7 @@ const AdminModal = ({ isOpen, onClose }) => {
                                     Add, edit, or remove department members.
                                 </p>
                                 <form className="admin-form" onSubmit={handleAddMember}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <div className="admin-form-grid">
                                         <label>
                                             Name
                                             <input type="text" placeholder="Enter full name" value={memberForm.name} onChange={e => setMemberForm({ ...memberForm, name: e.target.value })} required />
@@ -392,16 +641,16 @@ const AdminModal = ({ isOpen, onClose }) => {
                                         Object.keys(appMembers).map(tenure => (
                                             Object.keys(appMembers[tenure]).map(group => (
                                                 appMembers[tenure][group].map(member => (
-                                                    <li key={member.id} className="member-item">
+                                                    <li key={member._id || member.id || `${tenure}-${group}-${member.email || member.name}` } className="member-item">
                                                         <div className="item-info">
                                                             <img src={member.photo} alt={member.name} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', marginRight: '1rem' }} />
                                                             <div>
                                                                 <span className="item-name">{member.name}</span>
-                                                                <span className="item-role">{member.role} • {group}</span>
+                                                                <span className="item-role">{member.role} {group}</span>
                                                             </div>
                                                         </div>
                                                         <div className="item-actions">
-                                                            <button className="btn btn-secondary btn-sm" style={{ color: '#ef4444' }} onClick={() => handleDeleteMember(member.id, tenure, group)}>Remove</button>
+                                                            <button className="btn btn-secondary btn-sm" style={{ color: '#ef4444' }} onClick={() => handleDeleteMember(member._id || member.id)}>Remove</button>
                                                         </div>
                                                     </li>
                                                 ))
@@ -422,25 +671,27 @@ const AdminModal = ({ isOpen, onClose }) => {
                                     Add or update department projects.
                                 </p>
                                 <form className="admin-form" onSubmit={handleAddProject}>
-                                    <label>
-                                        Project Title
-                                        <input type="text" placeholder="Enter project title" value={projectForm.title} onChange={e => setProjectForm({ ...projectForm, title: e.target.value })} required />
-                                    </label>
-                                    <label>
-                                        Description
-                                        <textarea placeholder="Enter description" rows={3} value={projectForm.description} onChange={e => setProjectForm({ ...projectForm, description: e.target.value })} required></textarea>
-                                    </label>
-                                    <label>
-                                        Status
-                                        <select value={projectForm.status} onChange={e => setProjectForm({ ...projectForm, status: e.target.value })}>
-                                            <option value="ongoing">Ongoing</option>
-                                            <option value="completed">Completed</option>
-                                        </select>
-                                    </label>
-                                    <label>
-                                        Technologies (comma separated)
-                                        <input type="text" placeholder="React, Python, etc." value={projectForm.technologies} onChange={e => setProjectForm({ ...projectForm, technologies: e.target.value })} />
-                                    </label>
+                                    <div className="admin-form-grid">
+                                        <label>
+                                            Project Title
+                                            <input type="text" placeholder="Enter project title" value={projectForm.title} onChange={e => setProjectForm({ ...projectForm, title: e.target.value })} required />
+                                        </label>
+                                        <label>
+                                            Status
+                                            <select value={projectForm.status} onChange={e => setProjectForm({ ...projectForm, status: e.target.value })}>
+                                                <option value="ongoing">Ongoing</option>
+                                                <option value="completed">Completed</option>
+                                            </select>
+                                        </label>
+                                        <label style={{ gridColumn: '1 / -1' }}>
+                                            Description
+                                            <textarea placeholder="Enter description" rows={3} value={projectForm.description} onChange={e => setProjectForm({ ...projectForm, description: e.target.value })} required></textarea>
+                                        </label>
+                                        <label>
+                                            Technologies (comma separated)
+                                            <input type="text" placeholder="React, Python, etc." value={projectForm.technologies} onChange={e => setProjectForm({ ...projectForm, technologies: e.target.value })} />
+                                        </label>
+                                    </div>
                                     <button className="btn btn-primary">Add Project</button>
                                     {projectsMsg && <div style={{ marginTop: '0.5rem', color: '#10b981' }}>{projectsMsg}</div>}
                                 </form>
@@ -481,7 +732,7 @@ const AdminModal = ({ isOpen, onClose }) => {
                                         About Text
                                         <textarea rows={4} value={contentForm.aboutText} onChange={e => setContentForm({ ...contentForm, aboutText: e.target.value })}></textarea>
                                     </label>
-                                    <button className="btn btn-primary">Save Changes</button>
+                                    <button className="btn btn-primary" style={{ marginTop: '0.5rem' }}>Save Changes</button>
                                     {contentMsg && <div style={{ marginTop: '0.5rem', color: '#10b981' }}>{contentMsg}</div>}
                                 </form>
                             </div>
@@ -496,7 +747,7 @@ const AdminModal = ({ isOpen, onClose }) => {
 
                                 {/* Interview Slots Manager */}
                                 <div style={{ marginBottom: '2.5rem' }}>
-                                    <h4 style={{ color: 'var(--text-primary)', marginBottom: '1rem' }}>📅 Interview Slots Manager</h4>
+                                    <h4 style={{ color: 'var(--text-primary)', marginBottom: '1rem' }}>Interview Slots Manager</h4>
                                     <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem', fontSize: '0.875rem' }}>
                                         Add available interview dates/times. Applicants can book a slot after submitting their application.
                                     </p>
@@ -518,7 +769,9 @@ const AdminModal = ({ isOpen, onClose }) => {
                                                         <span className="item-role">{s.time}</span>
                                                     </div>
                                                     <div className="item-actions">
-                                                        <button className="btn btn-secondary btn-sm" style={{ color: '#ef4444' }} onClick={() => handleRemoveSlot(s.date, s.time)}>Remove</button>
+                                                        <button className="btn btn-secondary btn-sm" style={{ color: '#ef4444' }} onClick={() => handleRemoveSlot(s._id)}>
+                                                            Remove
+                                                        </button>
                                                     </div>
                                                 </li>
                                             ))}
@@ -531,7 +784,7 @@ const AdminModal = ({ isOpen, onClose }) => {
                                 <hr style={{ margin: '2rem 0', borderColor: 'var(--border-color)' }} />
 
                                 {/* Applications List */}
-                                <h4 style={{ color: 'var(--text-primary)', marginBottom: '1rem' }}>📋 Applications ({applications.length})</h4>
+                                <h4 style={{ color: 'var(--text-primary)', marginBottom: '1rem' }}>Applications ({applications.length})</h4>
                                 {applications.length > 0 ? (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                         {applications.slice().reverse().map((app, i) => (
@@ -544,6 +797,9 @@ const AdminModal = ({ isOpen, onClose }) => {
                                                         <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)', fontSize: '1.125rem' }}>{app.name}</h4>
                                                         <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
                                                             📧 {app.email} {app.phone ? `• 📞 ${app.phone}` : ''} • 📚 Semester {app.semester}
+                                                        </p>
+                                                        <p style={{ margin: '0.25rem 0 0 0', color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
+                                                            🕑 {app.timestamp ? new Date(app.timestamp).toLocaleString() : 'No timestamp'}
                                                         </p>
                                                         {app.portfolio && (
                                                             <p style={{ margin: '0.5rem 0 0 0' }}>
@@ -585,7 +841,7 @@ const AdminModal = ({ isOpen, onClose }) => {
                                                 </div>
 
                                                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                                    <button className="btn btn-primary btn-sm" onClick={() => handleAcceptApp(app, i)}>
+                                                    <button className="btn btn-primary btn-sm" onClick={() => handleAcceptApp(app)}>
                                                         ✓ Accept
                                                     </button>
                                                     <button className="btn btn-secondary btn-sm" onClick={() => handleRejectApp(app)} style={{ color: '#ef4444' }}>
@@ -630,14 +886,16 @@ const AdminModal = ({ isOpen, onClose }) => {
                                     Manage admin accounts and permissions.
                                 </p>
                                 <form className="admin-form" onSubmit={handleAddAdmin}>
-                                    <label>
-                                        Email
-                                        <input type="email" placeholder="newadmin@email.com" value={newAdminEmail} onChange={(e) => setNewAdminEmail(e.target.value)} required />
-                                    </label>
-                                    <label>
-                                        Password
-                                        <input type="password" placeholder="Enter strong password" value={newAdminPassword} onChange={(e) => handleAdminPwChange(e.target.value)} required />
-                                    </label>
+                                    <div className="admin-form-grid">
+                                        <label>
+                                            Email
+                                            <input type="email" placeholder="newadmin@email.com" value={newAdminEmail} onChange={(e) => setNewAdminEmail(e.target.value)} required />
+                                        </label>
+                                        <label>
+                                            Password
+                                            <input type="password" placeholder="Enter strong password" value={newAdminPassword} onChange={(e) => handleAdminPwChange(e.target.value)} required />
+                                        </label>
+                                    </div>
                                     {newAdminPassword && (
                                         <>
                                             {renderStrengthBar(adminPwStrength)}
@@ -649,13 +907,13 @@ const AdminModal = ({ isOpen, onClose }) => {
                                 </form>
                                 <hr style={{ margin: '2rem 0', borderColor: 'var(--border-color)' }} />
                                 <ul className="admin-list">
-                                    {currentAdmins.length > 0 ? currentAdmins.map((admin, i) => (
+                                    {adminAccounts.length > 0 ? adminAccounts.map((admin, i) => (
                                         <li key={i} className="member-item">
                                             <div className="item-info">
-                                                <span className="item-name">{admin.email || admin.name}</span>
                                                 <span className="item-role">
-                                                    {i === 0 ? '👑 Super Admin' : '👤 Admin'}
+                                                    {i === 0 ? 'Super Admin: ' : 'Admin: '}
                                                 </span>
+                                                <span className="item-name">{admin.email || admin.name}</span>
                                             </div>
                                             <div className="item-actions">
                                                 {i !== 0 && <button className="btn btn-secondary btn-sm" style={{ color: '#ef4444' }}>Remove</button>}
@@ -665,7 +923,7 @@ const AdminModal = ({ isOpen, onClose }) => {
                                         <li className="member-item">
                                             <div className="item-info">
                                                 <span className="item-name">admin@codechef-projects.com</span>
-                                                <span className="item-role">👑 Super Admin</span>
+                                                <span className="item-role"> Super Admin</span>
                                             </div>
                                         </li>
                                     )}
@@ -683,25 +941,27 @@ const AdminModal = ({ isOpen, onClose }) => {
                                     Change your admin password and manage account settings.
                                 </p>
                                 <form className="admin-form" onSubmit={handleChangePassword}>
-                                    <h4 style={{ marginBottom: '1rem' }}>Change Admin Password</h4>
-                                    <label>
-                                        Current Password
-                                        <input type="password" placeholder="Enter current password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
-                                    </label>
-                                    <label>
-                                        New Password
-                                        <input type="password" placeholder="Enter new password" value={newPassword} onChange={(e) => handleNewPasswordChange(e.target.value)} required />
-                                    </label>
+                                    <h4 style={{ marginBottom: '1rem', marginTop: 0 }}>Change Admin Password</h4>
+                                    <div className="admin-form-grid">
+                                        <label>
+                                            Current Password
+                                            <input type="password" placeholder="Enter current password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
+                                        </label>
+                                        <label>
+                                            Confirm New Password
+                                            <input type="password" placeholder="Re-enter new password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+                                        </label>
+                                        <label style={{ gridColumn: '1 / -1' }}>
+                                            New Password
+                                            <input type="password" placeholder="Enter new password" value={newPassword} onChange={(e) => handleNewPasswordChange(e.target.value)} required />
+                                        </label>
+                                    </div>
                                     {newPassword && (
                                         <>
                                             {renderStrengthBar(passwordStrength)}
                                             {renderPasswordRequirements(passwordReqs)}
                                         </>
                                     )}
-                                    <label>
-                                        Confirm New Password
-                                        <input type="password" placeholder="Re-enter new password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
-                                    </label>
                                     {confirmPassword && (
                                         <div style={{ fontSize: '0.85rem', color: newPassword === confirmPassword ? '#10b981' : '#ef4444' }}>
                                             {newPassword === confirmPassword ? '✓ Passwords match' : '✗ Passwords do not match'}
@@ -724,25 +984,32 @@ const AdminModal = ({ isOpen, onClose }) => {
                                 </p>
 
                                 <div className="admin-form">
-                                    <h4 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>📢 Announcements</h4>
+                                    <h4 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Announcements</h4>
                                     <label>
                                         Broadcast Message
-                                        <textarea placeholder="Enter message to broadcast to all users..." rows={2}></textarea>
+                                        <textarea
+                                            value={broadcastText}
+                                            onChange={(e) => setBroadcastText(e.target.value)}
+                                            placeholder="Enter message to broadcast to all users..."
+                                            rows={3}
+                                            style={{ width: '100%', minHeight: '80px', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                                        ></textarea>
                                     </label>
-                                    <button className="btn btn-primary" onClick={() => setSettingsMsg('✓ Broadcast sent successfully')}>Send Broadcast</button>
+                                    <button className="btn btn-primary" onClick={handleSendBroadcast} style={{ marginTop: '0.5rem' }}>Send Broadcast</button>
+                                    {broadcastMsg && <p style={{ marginTop: '0.5rem', color: broadcastMsg.startsWith('✓') ? '#10b981' : '#ef4444' }}>{broadcastMsg}</p>}
 
                                     <hr style={{ margin: '2rem 0', borderColor: 'var(--border-color)' }} />
 
-                                    <h4 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>⚙️ System Status</h4>
+                                    <h4 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>System Status</h4>
 
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: '8px', marginBottom: '1rem', border: '1px solid var(--border-color)' }}>
                                         <div>
                                             <strong style={{ color: 'var(--text-primary)', display: 'block' }}>Recruitment Status</strong>
                                             <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Toggle recruitment applications</span>
                                         </div>
-                                        <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', height: '24px' }}>
-                                            <input type="checkbox" checked={contentData['recruitmentActive'] ?? true} onChange={e => handleSaveSystem('recruitmentActive', e.target.checked)} />
-                                            <span className="slider round" style={{ position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#ccc', transition: '.4s', borderRadius: '34px' }}></span>
+                                        <label className={`toggle-switch ${systemConfig.recruitmentOpen ? 'active' : ''}`} style={{ position: 'relative', display: 'inline-block', width: '50px', height: '26px' }}>
+                                            <input type="checkbox" checked={systemConfig.recruitmentOpen} onChange={e => handleSaveSystem('recruitmentOpen', e.target.checked)} />
+                                            <span className="slider round" style={{ position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#ccc', transition: '.4s', borderRadius: '20px' }}></span>
                                         </label>
                                     </div>
 
@@ -751,9 +1018,9 @@ const AdminModal = ({ isOpen, onClose }) => {
                                             <strong style={{ color: 'var(--text-primary)', display: 'block' }}>Maintenance Mode</strong>
                                             <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Disable access for non-admins</span>
                                         </div>
-                                        <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', height: '24px' }}>
-                                            <input type="checkbox" checked={contentData['maintenanceMode'] ?? false} onChange={e => handleSaveSystem('maintenanceMode', e.target.checked)} />
-                                            <span className="slider round" style={{ position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#ccc', transition: '.4s', borderRadius: '34px' }}></span>
+                                        <label className={`toggle-switch ${systemConfig.maintenanceMode ? 'active' : ''}`} style={{ position: 'relative', display: 'inline-block', width: '50px', height: '26px' }}>
+                                            <input type="checkbox" checked={systemConfig.maintenanceMode} onChange={e => handleSaveSystem('maintenanceMode', e.target.checked)} />
+                                            <span className="slider round" style={{ position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#ccc', transition: '.4s', borderRadius: '20px' }}></span>
                                         </label>
                                     </div>
                                 </div>
@@ -762,8 +1029,41 @@ const AdminModal = ({ isOpen, onClose }) => {
                     )}
                 </div>
             </div>
+            <style>{`
+                .toggle-switch {
+                    width: 50px;
+                    height: 26px;
+                    background: #ccc;
+                    border-radius: 20px;
+                    display: inline-block;
+                    position: relative;
+                    transition: background 0.3s ease;
+                }
+                .toggle-switch.active {
+                    background: #ff6b35;
+                }
+                .toggle-switch input {
+                    opacity: 0;
+                    width: 0;
+                    height: 0;
+                }
+                .toggle-switch .slider {
+                    position: absolute;
+                    top: 3px;
+                    left: 3px;
+                    width: 20px;
+                    height: 20px;
+                    border-radius: 50%;
+                    background: #fff;
+                    transition: transform 0.2s ease;
+                }
+                .toggle-switch.active .slider {
+                    transform: translateX(24px);
+                }
+            `}</style>
         </div>
     );
 };
 
 export default AdminModal;
+

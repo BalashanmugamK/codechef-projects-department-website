@@ -9,7 +9,7 @@ export const members = {
             id: 1,
             name: 'Aakash Kumar',
             role: 'Technical Lead',
-            photo: 'https://via.placeholder.com/140/FF6B35/ffffff?text=AK',
+            photo: '',
             linkedin: '#',
             github: '#',
             tenure: '2025-26'
@@ -18,7 +18,7 @@ export const members = {
             id: 2,
             name: 'Rahul Singh',
             role: 'Management Lead',
-            photo: 'https://via.placeholder.com/140/FF8C42/ffffff?text=RS',
+            photo: '',
             linkedin: '#',
             github: '#',
             tenure: '2025-26'
@@ -27,7 +27,7 @@ export const members = {
             id: 3,
             name: 'Bala Shanmugam',
             role: 'Research Lead',
-            photo: 'https://via.placeholder.com/140/667EEA/ffffff?text=BS',
+            photo: '',
             linkedin: '#',
             github: '#',
             tenure: '2025-26'
@@ -38,7 +38,7 @@ export const members = {
             id: 4,
             name: 'Priya Sharma',
             role: 'Frontend Developer',
-            photo: 'https://via.placeholder.com/140/F4A261/ffffff?text=PS',
+            photo: '',
             linkedin: '#',
             github: '#',
             tenure: '2025-26'
@@ -47,7 +47,7 @@ export const members = {
             id: 5,
             name: 'Arjun Patel',
             role: 'Backend Developer',
-            photo: 'https://via.placeholder.com/140/2A9D8F/ffffff?text=AP',
+            photo: '',
             linkedin: '#',
             github: '#',
             tenure: '2025-26'
@@ -56,7 +56,7 @@ export const members = {
             id: 6,
             name: 'Zara Khan',
             role: 'Game Developer',
-            photo: 'https://via.placeholder.com/140/E76F51/ffffff?text=ZK',
+            photo: '',
             linkedin: '#',
             github: '#',
             tenure: '2025-26'
@@ -67,7 +67,7 @@ export const members = {
             id: 7,
             name: 'Dr. Amit Singh',
             role: 'Faculty Mentor',
-            photo: 'https://via.placeholder.com/140/264653/ffffff?text=AS',
+            photo: '',
             linkedin: '#',
             github: '#',
             tenure: '2025-26'
@@ -78,7 +78,7 @@ export const members = {
             id: 8,
             name: 'Vikram Reddy',
             role: 'Former Technical Lead',
-            photo: 'https://via.placeholder.com/140/9D4EDD/ffffff?text=VR',
+            photo: '',
             linkedin: '#',
             github: '#',
             tenure: '2024-25'
@@ -201,12 +201,12 @@ export const gameDev = {
         {
             id: 1,
             name: 'Zara Khan',
-            photo: 'https://via.placeholder.com/140/E76F51/ffffff?text=ZK'
+            photo: ''
         },
         {
             id: 2,
             name: 'Aakash Kumar',
-            photo: 'https://via.placeholder.com/140/FF6B35/ffffff?text=AK'
+            photo: ''
         }
     ],
     projects: [
