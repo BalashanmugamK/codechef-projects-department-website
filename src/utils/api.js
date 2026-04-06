@@ -1,9 +1,18 @@
-const API_URL =
-  import.meta.env.VITE_API_URL?.trim() ||
-  (import.meta.env.DEV ? "http://localhost:5000" : "https://codechef-projects-department-website.onrender.com");
+// Environment variable for API URL (Vite requires VITE_ prefix)
+const API_URL = import.meta.env.VITE_API_URL?.trim();
 
-// Debug log (very useful)
+// Debug log to verify environment variable is loaded
 console.log(`🌐 API configured to: ${API_URL}`);
+console.log(`🔧 Environment: ${import.meta.env.MODE}`);
+console.log(`📡 VITE_API_URL: ${import.meta.env.VITE_API_URL ? 'Set' : 'Not set'}`);
+
+// Validate API URL is configured
+if (!API_URL) {
+  console.error('❌ VITE_API_URL environment variable is not set!');
+  console.error('   Please set VITE_API_URL in your environment variables.');
+  console.error('   Vercel: Dashboard > Project > Settings > Environment Variables');
+  console.error('   Local: Create .env file with VITE_API_URL=your-api-url');
+}
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -94,3 +103,27 @@ export async function fetchWithRetry(
 }
 
 export { API_URL };
+
+// Example: Simple fetch function using the environment variable
+export async function apiRequest(endpoint, options = {}) {
+  const url = `${API_URL}${endpoint}`;
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      ...options,
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(`API request failed: ${url}`, error);
+    throw error;
+  }
+}
