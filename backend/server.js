@@ -340,6 +340,29 @@ app.post('/api/auth/admin-login', async (req, res) => {
     }
 });
 
+// Temporary route to seed admin accounts if none exist
+app.post('/api/auth/seed-admins', async (req, res) => {
+    try {
+        const adminCount = await AdminAccount.countDocuments();
+        if (adminCount > 0) {
+            return res.status(400).json({ success: false, message: 'Admin accounts already exist' });
+        }
+        
+        const defaultAdmins = [
+            { email: 'admin@codechef-projects.com', password: 'Admin@123', role: 'super-admin' },
+            { email: 'lead@codechef-projects.com', password: 'Lead@123', role: 'admin' }
+        ];
+        
+        for (const adminData of defaultAdmins) {
+            await new AdminAccount(adminData).save();
+        }
+        
+        res.json({ success: true, message: 'Admin accounts seeded successfully' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to seed admins', error: error.message });
+    }
+});
+
 app.post('/api/auth/check-email', async (req, res) => {
     try {
         const { email } = req.body;
