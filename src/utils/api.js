@@ -1,5 +1,5 @@
 const API_URL =
-  import.meta.env.VITE_API_URL?.trim() || "http://localhost:5000";
+  import.meta.env.VITE_API_URL?.trim() || ""https://codechef-projects-department-website.onrender.com";
 
 // Debug log (very useful)
 console.log(`🌐 API configured to: ${API_URL}`);
