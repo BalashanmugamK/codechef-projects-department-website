@@ -12,7 +12,10 @@ export async function fetchWithRetry(
   retries = 3,
   timeout = 10000
 ) {
-  const url = `${API_URL}${endpoint}`; // ✅ always build full URL
+  // Safety net: handle both full URLs and endpoints
+  const url = endpoint.startsWith("http")
+    ? endpoint
+    : `${API_URL}${endpoint}`;
 
   const controller = new AbortController();
   const config = {
