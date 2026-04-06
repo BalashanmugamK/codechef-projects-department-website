@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
+import { fetchWithRetry, API_URL } from '../../utils/api';
+import { getMemberPlaceholder } from '../../utils/placeholderUtils';
 
 // Inline SVG icon components
 const IconX = ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
@@ -12,13 +14,17 @@ const IconSettings = ({ size = 16 }) => <svg width={size} height={size} viewBox=
 const IconUserPlus = ({ size = 16 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" /></svg>;
 const IconExternalLink = ({ size = 14 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>;
 
-// Vite environment configuration for API calls
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
 const AdminModal = ({ isOpen, onClose }) => {
     const [activeTab, setActiveTab] = useState('members');
-    const { user, logout, getAdmins, addAdmin, updateAdminPassword } = useAuth();
+    const { user, token, logout, closeAdminDashboard, getAdmins, addAdmin, updateAdminPassword } = useAuth();
     const { addNotification } = useNotification();
+
+    const handleLogout = () => {
+        logout();
+        closeAdminDashboard();
+        addNotification('Logged out successfully!', { type: 'success' });
+        onClose();
+    };
 
     // Force re-render helper to update lists
     const [tick, setTick] = useState(0);
@@ -29,6 +35,8 @@ const AdminModal = ({ isOpen, onClose }) => {
     const [applications, setApplications] = useState([]);
     const [appMembers, setAppMembers] = useState({});
     const [adminAccounts, setAdminAccounts] = useState([]);
+    const [allUsers, setAllUsers] = useState([]);
+    const [userMgmtMsg, setUserMgmtMsg] = useState('');
 
 
     // Settings Tab State
@@ -44,6 +52,7 @@ const AdminModal = ({ isOpen, onClose }) => {
     // System config and broadcast
     const [systemConfig, setSystemConfig] = useState({ recruitmentOpen: true, maintenanceMode: false });
     const [broadcastText, setBroadcastText] = useState('');
+    const [broadcastDuration, setBroadcastDuration] = useState(10);
     const [broadcastMsg, setBroadcastMsg] = useState('');
 
     // Interview Slots State
@@ -67,6 +76,9 @@ const AdminModal = ({ isOpen, onClose }) => {
         linkedin: '', github: '', photo: ''
     });
     const [membersMsg, setMembersMsg] = useState('');
+    const [editingMemberId, setEditingMemberId] = useState(null);
+    const [editingUserId, setEditingUserId] = useState(null);
+    const [editedUserData, setEditedUserData] = useState({ name: '', email: '', role: 'user' });
 
     // PROJECTS Management State
     const [projectForm, setProjectForm] = useState({
@@ -79,14 +91,16 @@ const AdminModal = ({ isOpen, onClose }) => {
     const [contentForm, setContentForm] = useState({
         heroTitle: 'CodeChef Projects Department',
         heroSubtitle: 'Building innovative solutions...',
-        aboutText: 'The CodeChef Projects Department...'
+        aboutText: 'The CodeChef Projects Department...',
+        footerText: 'Built by the CodeChef Projects Department at VIT Chennai.',
+        heroButtonText: 'Join the Team',
+        heroButtonLink: '#recruitment'
     });
     const [contentMsg, setContentMsg] = useState('');
 
     useEffect(() => {
-        // Load content from localStorage on mount
         const savedContent = JSON.parse(localStorage.getItem('contentData')) || {};
-        if (savedContent.heroTitle) {
+        if (savedContent && Object.keys(savedContent).length > 0) {
             setContentForm(prev => ({ ...prev, ...savedContent }));
         }
     }, [isOpen]);
@@ -95,16 +109,13 @@ const AdminModal = ({ isOpen, onClose }) => {
         // Load dynamic data from backend
         const loadAllData = async () => {
             try {
-                const slotsRes = await fetch(`${API_URL}/api/interview-slots`);
-                const slotsData = await slotsRes.json();
+                const slotsData = await fetchWithRetry(`${API_URL}/api/interview-slots`, { method: 'GET' });
                 if (slotsData.success) setInterviewSlots(slotsData.slots || []);
 
-                const appsRes = await fetch(`${API_URL}/api/applications`);
-                const appsData = await appsRes.json();
+                const appsData = await fetchWithRetry(`${API_URL}/api/applications`, { method: 'GET' });
                 if (appsData.success) setApplications(appsData.applications || []);
 
-                const membersRes = await fetch(`${API_URL}/api/members`);
-                const membersData = await membersRes.json();
+                const membersData = await fetchWithRetry(`${API_URL}/api/members`, { method: 'GET' });
                 if (membersData.success) {
                     const byTenureGroup = {};
                     membersData.members.forEach(m => {
@@ -117,22 +128,22 @@ const AdminModal = ({ isOpen, onClose }) => {
                     setAppMembers(byTenureGroup);
                 }
 
-                // System config (recruitment + maintenance toggles)
-                try {
-                    const systemRes = await fetch(`${API_URL}/api/system`);
-                    const systemData = await systemRes.json();
-                    if (systemData.success && systemData.system) {
-                        setSystemConfig({
-                            recruitmentOpen: systemData.system.recruitmentOpen ?? true,
-                            maintenanceMode: systemData.system.maintenanceMode ?? false
-                        });
-                    }
-                } catch (systemErr) {
-                    console.error('Failed to fetch system config:', systemErr);
+                const systemData = await fetchWithRetry(`${API_URL}/api/system`, { method: 'GET' });
+                if (systemData.success && systemData.system) {
+                    setSystemConfig({
+                        recruitmentOpen: systemData.system.recruitmentOpen ?? true,
+                        maintenanceMode: systemData.system.maintenanceMode ?? false
+                    });
+                } else if (systemData.error) {
+                    console.warn('Failed to fetch system config:', systemData.error);
                 }
 
                 const adminsData = await getAdmins();
                 if (Array.isArray(adminsData)) setAdminAccounts(adminsData);
+
+                const usersData = await fetchWithRetry(`${API_URL}/api/users`, { method: 'GET' });
+                if (usersData.success) setAllUsers(usersData.users || []);
+                else if (usersData.error) console.warn('Failed to fetch user accounts:', usersData.error);
             } catch (error) {
                 console.error('Admin modal data load error:', error);
             }
@@ -147,6 +158,7 @@ const AdminModal = ({ isOpen, onClose }) => {
 
     const tabs = [
         { key: 'members', label: 'Members', icon: <IconUsers size={16} /> },
+        { key: 'users', label: 'User Accounts', icon: <IconFolderOpen size={16} /> },
         { key: 'projects', label: 'Projects', icon: <IconFolderOpen size={16} /> },
         { key: 'content', label: 'Content', icon: <IconFileText size={16} /> },
         { key: 'recruitment', label: 'Recruitment', icon: <IconUserPlus size={16} /> },
@@ -206,29 +218,33 @@ const AdminModal = ({ isOpen, onClose }) => {
         if (!slotDate || !slotTime) { setSlotsMsg('Both date and time are required'); return; }
 
         try {
-            const response = await fetch(`${API_URL}/api/slots`, {
+            const data = await fetchWithRetry(`${API_URL}/api/admin/interview-slots`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                },
                 body: JSON.stringify({ date: slotDate, time: slotTime, duration: slotDuration })
             });
-            const data = await response.json();
-            if (response.ok && data.success) {
+            if (data.success) {
                 const messageText = `New interview slot added: ${slotDate} at ${slotTime} (${slotDuration} mins)`;
                 setSlotsMsg(`✓ ${messageText}`);
                 addNotification(messageText, { type: 'success' });
 
-                // Also broadcast to all users via backend message
-                fetch(`${API_URL}/api/admin/messages`, {
+                fetchWithRetry(`${API_URL}/api/admin/messages`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { Authorization: `Bearer ${token}` } : {})
+                    },
                     body: JSON.stringify({ text: messageText })
-                }).catch((err) => console.error('Broadcast API error', err));
+                }, 1).catch((err) => console.error('Broadcast API error', err));
 
                 setSlotDate(''); setSlotTime(''); setSlotDuration(10);
                 forceUpdate();
             } else {
-                setSlotsMsg(data.message || 'Failed to add slot');
-                addNotification(data.message || 'Failed to add slot', { type: 'error' });
+                setSlotsMsg(data.error || data.message || 'Failed to add slot');
+                addNotification(data.error || data.message || 'Failed to add slot', { type: 'error' });
             }
         } catch (error) {
             console.error('Add slot error:', error);
@@ -237,20 +253,17 @@ const AdminModal = ({ isOpen, onClose }) => {
     };
 
     const handleRemoveSlot = async (slotId) => {
-        try {
-            const response = await fetch(`${API_URL}/api/admin/interview-slots/${slotId}`, {
-                method: 'DELETE'
-            });
-            const data = await response.json();
-            if (response.ok && data.success) {
-                setSlotsMsg('Slot removed');
-                forceUpdate();
-            } else {
-                setSlotsMsg(data.message || 'Failed to remove slot');
+        const data = await fetchWithRetry(`${API_URL}/api/admin/interview-slots/${slotId}`, {
+            method: 'DELETE',
+            headers: {
+                ...(token ? { Authorization: `Bearer ${token}` } : {})
             }
-        } catch (error) {
-            console.error('Remove slot error:', error);
-            setSlotsMsg('Failed to remove slot');
+        });
+        if (data.success) {
+            setSlotsMsg('Slot removed');
+            forceUpdate();
+        } else {
+            setSlotsMsg(data.error || data.message || 'Failed to remove slot');
         }
     };
 
@@ -258,17 +271,21 @@ const AdminModal = ({ isOpen, onClose }) => {
         if (!window.confirm(`Accept ${app.name} as a member?`)) return;
 
         try {
-            const res = await fetch(`${API_URL}/api/admin/applications/${app._id || app.id}`, {
-                method: 'DELETE'
+            const deleteResponse = await fetchWithRetry(`${API_URL}/api/admin/applications/${app._id || app.id}`, {
+                method: 'DELETE',
+                headers: {
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                }
             });
-            const data = await res.json();
-            if (res.ok && data.success) {
+            if (deleteResponse.success) {
                 alert(`✓ ${app.name} has been accepted! Email notification sent.`);
                 setApplications(prev => prev.filter(a => (a._id || a.id) !== (app._id || app.id)));
-                // Optionally add member to members collection
-                await fetch(`${API_URL}/api/members`, {
+                await fetchWithRetry(`${API_URL}/api/admin/members`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { Authorization: `Bearer ${token}` } : {})
+                    },
                     body: JSON.stringify({
                         name: app.name,
                         email: app.email,
@@ -282,7 +299,7 @@ const AdminModal = ({ isOpen, onClose }) => {
                 });
                 forceUpdate();
             } else {
-                alert(data.message || 'Failed to accept application');
+                alert(deleteResponse.message || deleteResponse.error || 'Failed to accept application');
             }
         } catch (error) {
             console.error('Accept application error:', error);
@@ -294,16 +311,18 @@ const AdminModal = ({ isOpen, onClose }) => {
         if (!window.confirm(`Reject application for ${app.name}?`)) return;
 
         try {
-            const res = await fetch(`${API_URL}/api/admin/applications/${app._id || app.id}`, {
-                method: 'DELETE'
+            const data = await fetchWithRetry(`${API_URL}/api/admin/applications/${app._id || app.id}`, {
+                method: 'DELETE',
+                headers: {
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                }
             });
-            const data = await res.json();
-            if (res.ok && data.success) {
+            if (data.success) {
                 alert('Application rejected.');
                 setApplications(prev => prev.filter(a => (a._id || a.id) !== (app._id || app.id)));
                 forceUpdate();
             } else {
-                alert(data.message || 'Failed to reject application');
+                alert(data.message || data.error || 'Failed to reject application');
             }
         } catch (error) {
             console.error('Reject application error:', error);
@@ -332,51 +351,139 @@ const AdminModal = ({ isOpen, onClose }) => {
         }
     };
 
+    const handleDeleteUser = async (userId) => {
+        if (!window.confirm('Delete this user account?')) return;
+        try {
+            const data = await fetchWithRetry(`${API_URL}/api/users/${userId}`, {
+                method: 'DELETE',
+                headers: {
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                }
+            });
+            if (data.success) {
+                setUserMgmtMsg('✓ User deleted');
+                setAllUsers((prev) => prev.filter((u) => u._id !== userId));
+                addNotification('User account removed', { type: 'success' });
+            } else {
+                setUserMgmtMsg(data.message || data.error || 'Failed to delete user');
+            }
+        } catch (err) {
+            console.error('Delete user error:', err);
+            setUserMgmtMsg('Failed to delete user');
+        }
+    };
+
+    const handleStartEditUser = (user) => {
+        setEditingUserId(user._id);
+        setEditedUserData({ name: user.name || '', email: user.email || '', role: user.role || 'user' });
+        setUserMgmtMsg(`Editing ${user.name || user.email}. Save or cancel.`);
+    };
+
+    const handleCancelEditUser = () => {
+        setEditingUserId(null);
+        setEditedUserData({ name: '', email: '', role: 'user' });
+        setUserMgmtMsg('User edit canceled.');
+    };
+
+    const handleSaveUser = async (userId) => {
+        try {
+            const data = await fetchWithRetry(`${API_URL}/api/users/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify(editedUserData)
+            });
+            if (data.success) {
+                setUserMgmtMsg('✓ User updated successfully');
+                setAllUsers((prev) => prev.map((u) => u._id === userId ? { ...u, ...editedUserData } : u));
+                setEditingUserId(null);
+                setEditedUserData({ name: '', email: '', role: 'user' });
+            } else {
+                setUserMgmtMsg(data.message || data.error || 'Failed to update user');
+            }
+        } catch (err) {
+            console.error('Save user error:', err);
+            setUserMgmtMsg('Failed to update user');
+        }
+    };
+
     // --- NEW: Handle Members ---
     const handleAddMember = async (e) => {
         e.preventDefault();
         const payload = {
             ...memberForm,
-            photo: memberForm.photo || '' // Frontend will generate placeholder
+            photo: memberForm.photo || ''
         };
 
+        const endpoint = editingMemberId ? `${API_URL}/api/admin/members/${editingMemberId}` : `${API_URL}/api/admin/members`;
+        const method = editingMemberId ? 'PUT' : 'POST';
+
         try {
-            const response = await fetch(`${API_URL}/api/members`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+            const data = await fetchWithRetry(endpoint, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                },
                 body: JSON.stringify(payload)
             });
-            const data = await response.json();
-            if (response.ok && data.success) {
-                setMembersMsg(`✓ ${payload.name} added successfully!`);
+            if (data.success) {
+                const message = editingMemberId ? `✓ ${payload.name} updated successfully!` : `✓ ${payload.name} added successfully!`;
+                setMembersMsg(message);
                 setMemberForm({ name: '', email: '', role: '', group: 'Core Team', tenure: '2023-2024', linkedin: '', github: '', photo: '' });
+                setEditingMemberId(null);
                 forceUpdate();
             } else {
-                setMembersMsg(data.message || 'Failed to add member');
+                setMembersMsg(data.message || data.error || 'Failed to save member');
             }
         } catch (error) {
-            console.error('Add member error:', error);
-            setMembersMsg('Failed to add member');
+            console.error('Add/edit member error:', error);
+            setMembersMsg('Failed to save member');
         }
     };
 
     const handleDeleteMember = async (id) => {
         if (!window.confirm('Are you sure you want to remove this member?')) return;
         try {
-            const response = await fetch(`${API_URL}/api/members/${id}`, {
-                method: 'DELETE'
+            const data = await fetchWithRetry(`${API_URL}/api/admin/members/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                }
             });
-            const data = await response.json();
-            if (response.ok && data.success) {
+            if (data.success) {
                 setMembersMsg('✓ Member removed');
                 forceUpdate();
             } else {
-                setMembersMsg(data.message || 'Failed to remove member');
+                setMembersMsg(data.message || data.error || 'Failed to remove member');
             }
         } catch (error) {
             console.error('Delete member error:', error);
             setMembersMsg('Failed to remove member');
         }
+    };
+
+    const handleStartEditMember = (member) => {
+        setEditingMemberId(member._id || member.id);
+        setMemberForm({
+            name: member.name || '',
+            email: member.email || '',
+            role: member.role || '',
+            group: member.group || 'Core Team',
+            tenure: member.tenure || '2023-2024',
+            linkedin: member.linkedin || '',
+            github: member.github || '',
+            photo: member.photo || ''
+        });
+        setMembersMsg('Editing member details. Save when ready.');
+    };
+
+    const handleCancelEditMember = () => {
+        setEditingMemberId(null);
+        setMemberForm({ name: '', email: '', role: '', group: 'Core Team', tenure: '2023-2024', linkedin: '', github: '', photo: '' });
+        setMembersMsg('Member edit canceled.');
     };
 
     // --- NEW: Handle Projects ---
@@ -401,9 +508,9 @@ const AdminModal = ({ isOpen, onClose }) => {
     const handleSaveContent = (e) => {
         e.preventDefault();
         let contentData = JSON.parse(localStorage.getItem('contentData')) || {};
-        // Merge updates
         const updated = { ...contentData, ...contentForm };
         localStorage.setItem('contentData', JSON.stringify(updated));
+        window.dispatchEvent(new Event('contentUpdate'));
         setContentMsg('✓ Content updated successfully!');
     };
 
@@ -417,20 +524,19 @@ const AdminModal = ({ isOpen, onClose }) => {
                 ...((key === 'maintenanceMode') && { maintenanceMode: val })
             };
 
-            const response = await fetch(`${API_URL}/api/system`, {
+            const data = await fetchWithRetry(`${API_URL}/api/system`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newConfig)
             });
-            const data = await response.json();
-            if (response.ok && data.success) {
+            if (data.success) {
                 setSystemConfig({
                     recruitmentOpen: data.system.recruitmentOpen,
                     maintenanceMode: data.system.maintenanceMode
                 });
                 setSettingsMsg('System setting saved.');
             } else {
-                setSettingsMsg(data.message || 'Failed to update system setting');
+                setSettingsMsg(data.message || data.error || 'Failed to update system setting');
             }
         } catch (err) {
             console.error('System update error:', err);
@@ -445,17 +551,21 @@ const AdminModal = ({ isOpen, onClose }) => {
         }
 
         try {
-            const response = await fetch(`${API_URL}/api/announce`, {
+            const data = await fetchWithRetry(`${API_URL}/api/admin/messages`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: broadcastText.trim() })
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({ text: broadcastText.trim(), duration: broadcastDuration * 1000 })
             });
-            const data = await response.json();
-            if (response.ok && data.success) {
+            if (data.success) {
                 setBroadcastMsg('✓ Broadcast sent successfully.');
+                addNotification(`📢 Broadcast: ${broadcastText.trim()}`, { type: 'info', duration: broadcastDuration * 1000 });
+                addAlert(`📢 Broadcast: ${broadcastText.trim()}`, { type: 'info', duration: broadcastDuration * 1000 });
                 setBroadcastText('');
             } else {
-                setBroadcastMsg(data.message || 'Failed to send broadcast');
+                setBroadcastMsg(data.message || data.error || 'Failed to send broadcast');
             }
         } catch (err) {
             console.error('Broadcast send error:', err);
@@ -517,13 +627,14 @@ const AdminModal = ({ isOpen, onClose }) => {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0, 0, 0, 0.6)',
-            display: 'flex',
+            background: 'rgba(0, 0, 0, 0.72)',
+            display: isOpen ? 'flex' : 'none',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 1000,
+            zIndex: 10002,
             padding: '16px',
-            overflow: 'auto'
+            overflow: 'auto',
+            WebkitOverflowScrolling: 'touch'
           }}
           onClick={(e) => {
             if (e.target === e.currentTarget) onClose();
@@ -535,7 +646,7 @@ const AdminModal = ({ isOpen, onClose }) => {
               background: 'var(--bg-primary)',
               borderRadius: '16px',
               width: '100%',
-              maxWidth: '900px',
+              maxWidth: '1100px',
               maxHeight: '90vh',
               overflow: 'auto',
               display: 'flex',
@@ -549,7 +660,7 @@ const AdminModal = ({ isOpen, onClose }) => {
                 <h2 style={{ margin: 0, fontSize: '1.5rem' }}>Admin Dashboard</h2>
                 <div className="admin-header-controls" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <span className="admin-user" style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>{user?.email || 'admin@codechef-projects.com'}</span>
-                  <button className="btn btn-danger" onClick={logout} style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>Logout</button>
+                  <button className="btn btn-danger" onClick={handleLogout} style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>Logout</button>
                   <button className="close-modal" onClick={onClose} style={{ fontSize: '1.5rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}>&times;</button>
                 </div>
               </div>
@@ -643,7 +754,14 @@ const AdminModal = ({ isOpen, onClose }) => {
                                             <input type="url" placeholder="https://..." value={memberForm.photo} onChange={e => setMemberForm({ ...memberForm, photo: e.target.value })} />
                                         </label>
                                     </div>
-                                    <button className="btn btn-primary" style={{ marginTop: '1rem' }}>Add Member</button>
+                                    <button className="btn btn-primary" style={{ marginTop: '1rem' }}>
+                                        {editingMemberId ? 'Save Member' : 'Add Member'}
+                                    </button>
+                                    {editingMemberId && (
+                                        <button type="button" className="btn btn-secondary" style={{ marginTop: '1rem', marginLeft: '0.75rem' }} onClick={handleCancelEditMember}>
+                                            Cancel
+                                        </button>
+                                    )}
                                     {membersMsg && <div style={{ marginTop: '0.5rem', color: '#10b981' }}>{membersMsg}</div>}
                                 </form>
                                 <hr style={{ margin: '2rem 0', borderColor: 'var(--border-color)' }} />
@@ -657,13 +775,19 @@ const AdminModal = ({ isOpen, onClose }) => {
                                                 appMembers[tenure][group].map(member => (
                                                     <li key={member._id || member.id || `${tenure}-${group}-${member.email || member.name}` } className="member-item">
                                                         <div className="item-info">
-                                                            <img src={member.photo} alt={member.name} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', marginRight: '1rem' }} />
+                                                            <img 
+                                                                src={member.photo || getMemberPlaceholder(member)} 
+                                                                alt={member.name} 
+                                                                style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', marginRight: '1rem' }}
+                                                                onError={(e) => { e.target.src = getMemberPlaceholder(member); }}
+                                                            />
                                                             <div>
                                                                 <span className="item-name">{member.name}</span>
                                                                 <span className="item-role">{member.role} {group}</span>
                                                             </div>
                                                         </div>
-                                                        <div className="item-actions">
+                                                        <div className="item-actions" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                            <button className="btn btn-secondary btn-sm" style={{ color: '#2563eb' }} onClick={() => handleStartEditMember(member)}>Edit</button>
                                                             <button className="btn btn-secondary btn-sm" style={{ color: '#ef4444' }} onClick={() => handleDeleteMember(member._id || member.id)}>Remove</button>
                                                         </div>
                                                     </li>
@@ -743,8 +867,20 @@ const AdminModal = ({ isOpen, onClose }) => {
                                         <textarea rows={3} value={contentForm.heroSubtitle} onChange={e => setContentForm({ ...contentForm, heroSubtitle: e.target.value })}></textarea>
                                     </label>
                                     <label>
+                                        Hero Button Text
+                                        <input type="text" value={contentForm.heroButtonText} onChange={e => setContentForm({ ...contentForm, heroButtonText: e.target.value })} />
+                                    </label>
+                                    <label>
+                                        Hero Button Link
+                                        <input type="url" value={contentForm.heroButtonLink} onChange={e => setContentForm({ ...contentForm, heroButtonLink: e.target.value })} />
+                                    </label>
+                                    <label>
                                         About Text
                                         <textarea rows={4} value={contentForm.aboutText} onChange={e => setContentForm({ ...contentForm, aboutText: e.target.value })}></textarea>
+                                    </label>
+                                    <label>
+                                        Footer Text
+                                        <textarea rows={3} value={contentForm.footerText} onChange={e => setContentForm({ ...contentForm, footerText: e.target.value })}></textarea>
                                     </label>
                                     <button className="btn btn-primary" style={{ marginTop: '0.5rem' }}>Save Changes</button>
                                     {contentMsg && <div style={{ marginTop: '0.5rem', color: '#10b981' }}>{contentMsg}</div>}
@@ -770,15 +906,15 @@ const AdminModal = ({ isOpen, onClose }) => {
                                             style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', flex: 1 }} />
                                         <input type="time" value={slotTime} onChange={(e) => setSlotTime(e.target.value)}
                                             style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', flex: 1 }} />
-                                        <select value={slotDuration} onChange={(e) => setSlotDuration(parseInt(e.target.value))}
-                                            style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', minWidth: '100px' }}>
-                                            <option value={10}>10 mins</option>
-                                            <option value={15}>15 mins</option>
-                                            <option value={20}>20 mins</option>
-                                            <option value={30}>30 mins</option>
-                                            <option value={45}>45 mins</option>
-                                            <option value={60}>60 mins</option>
-                                        </select>
+                                        <input
+                                            type="number"
+                                            min={5}
+                                            step={5}
+                                            value={slotDuration}
+                                            onChange={(e) => setSlotDuration(Math.max(5, Number(e.target.value) || 5))}
+                                            style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', minWidth: '100px' }}
+                                            placeholder="Duration (mins)"
+                                        />
                                         <button className="btn btn-primary btn-sm" onClick={handleAddSlot}>Add Slot</button>
                                     </div>
                                     {slotsMsg && <div style={{ fontSize: '0.85rem', color: slotsMsg.startsWith('✓') ? '#10b981' : '#ef4444', marginBottom: '0.75rem' }}>{slotsMsg}</div>}
@@ -896,6 +1032,68 @@ const AdminModal = ({ isOpen, onClose }) => {
                                         </div>
                                     </div>
                                 )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ========== User Accounts Tab ========== */}
+                    {activeTab === 'users' && (
+                        <div className="admin-tab-content active">
+                            <div className="admin-section">
+                                <h3>User Accounts</h3>
+                                <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>Manage all registered users, update roles, and delete accounts as needed.</p>
+                                {userMgmtMsg && <div style={{ marginBottom: '1rem', color: userMgmtMsg.startsWith('✓') ? '#10b981' : '#ef4444' }}>{userMgmtMsg}</div>}
+                                <table style={{ width: '100%', borderCollapse: 'collapse', gap: '0.5rem' }}>
+                                    <thead>
+                                        <tr>
+                                            <th style={{ textAlign: 'left', padding: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>Name</th>
+                                            <th style={{ textAlign: 'left', padding: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>Email</th>
+                                            <th style={{ textAlign: 'left', padding: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>Role</th>
+                                            <th style={{ textAlign: 'left', padding: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {allUsers.length ? allUsers.map((u) => (
+                                            <tr key={u._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                                <td style={{ padding: '0.5rem' }}>
+                                                    {editingUserId === u._id ? (
+                                                        <input value={editedUserData.name} onChange={(e) => setEditedUserData(prev => ({ ...prev, name: e.target.value }))} style={{ width: '100%', padding: '0.4rem', borderRadius: '6px', border: '1px solid var(--border-color)' }} />
+                                                    ) : u.name || 'User'}
+                                                </td>
+                                                <td style={{ padding: '0.5rem' }}>
+                                                    {editingUserId === u._id ? (
+                                                        <input value={editedUserData.email} onChange={(e) => setEditedUserData(prev => ({ ...prev, email: e.target.value }))} style={{ width: '100%', padding: '0.4rem', borderRadius: '6px', border: '1px solid var(--border-color)' }} />
+                                                    ) : u.email}
+                                                </td>
+                                                <td style={{ padding: '0.5rem' }}>
+                                                    {editingUserId === u._id ? (
+                                                        <select value={editedUserData.role} onChange={(e) => setEditedUserData(prev => ({ ...prev, role: e.target.value }))} style={{ width: '100%', padding: '0.4rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                                                            <option value="user">User</option>
+                                                            <option value="admin">Admin</option>
+                                                        </select>
+                                                    ) : u.role}
+                                                </td>
+                                                <td style={{ padding: '0.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                    {editingUserId === u._id ? (
+                                                        <>
+                                                            <button onClick={() => handleSaveUser(u._id)} className="btn btn-primary btn-sm">Save</button>
+                                                            <button onClick={handleCancelEditUser} className="btn btn-secondary btn-sm">Cancel</button>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <button onClick={() => handleStartEditUser(u)} className="btn btn-secondary btn-sm" style={{ color: '#2563eb' }}>Edit</button>
+                                                            <button onClick={() => handleDeleteUser(u._id)} className="btn btn-secondary btn-sm" style={{ color: '#ef4444' }}>Delete</button>
+                                                        </>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        )) : (
+                                            <tr>
+                                                <td colSpan="4" style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>No users found.</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     )}
@@ -1018,7 +1216,21 @@ const AdminModal = ({ isOpen, onClose }) => {
                                             style={{ width: '100%', minHeight: '80px', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
                                         ></textarea>
                                     </label>
-                                    <button className="btn btn-primary" onClick={handleSendBroadcast} style={{ marginTop: '0.5rem' }}>Send Broadcast</button>
+                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.5rem' }}>
+                                        <label style={{ margin: 0 }}>
+                                            Duration (seconds)
+                                            <input
+                                                type="number"
+                                                min={5}
+                                                max={120}
+                                                step={5}
+                                                value={broadcastDuration}
+                                                onChange={(e) => setBroadcastDuration(Math.min(120, Number(e.target.value) || 5))}
+                                                style={{ width: '80px', marginLeft: '0.5rem', padding: '0.4rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}
+                                            />
+                                        </label>
+                                        <button className="btn btn-primary" onClick={handleSendBroadcast}>Send Broadcast</button>
+                                    </div>
                                     {broadcastMsg && <p style={{ marginTop: '0.5rem', color: broadcastMsg.startsWith('✓') ? '#10b981' : '#ef4444' }}>{broadcastMsg}</p>}
 
                                     <hr style={{ margin: '2rem 0', borderColor: 'var(--border-color)' }} />

@@ -23,13 +23,13 @@ const Quest = () => {
                 </thead>
                 <tbody>
                     {questData.leaderboard.map((entry) => (
-                        <tr key={entry.rank} style={{ borderBottom: '1px solid var(--border-color)', transition: 'all 0.2s', cursor: 'pointer' }}
+                        <tr key={`${entry.rank}-${entry.teamName}`} style={{ borderBottom: '1px solid var(--border-color)', transition: 'all 0.2s', cursor: 'pointer' }}
                             onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-tertiary)'}
                             onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                         >
-                            <td style={{ textAlign: 'center' }}>#{entry.rank}</td>
-                            <td>{entry.teamName}</td>
-                            <td style={{ textAlign: 'center' }}>
+                            <td key="rank" style={{ textAlign: 'center' }}>#{entry.rank}</td>
+                            <td key="teamName">{entry.teamName}</td>
+                            <td key="votes" style={{ textAlign: 'center' }}>
                                 <div style={{
                                     display: 'inline-block',
                                     background: 'linear-gradient(90deg, var(--accent-success), var(--accent-primary))',
@@ -39,7 +39,7 @@ const Quest = () => {
                                     {entry.votes || entry.points}/50
                                 </div>
                             </td>
-                            <td style={{ textAlign: 'center' }}>
+                            <td key="action" style={{ textAlign: 'center' }}>
                                 <button className="btn btn-secondary" style={{ padding: '0.5rem 1.2rem', fontSize: '0.95rem' }}
                                     onClick={() => showTeamMembers(entry.teamName, entry.members)}>
                                     View Members
@@ -107,16 +107,16 @@ const Quest = () => {
                 <div style={{
                     position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
                     background: 'rgba(0, 0, 0, 0.7)', display: 'flex', justifyContent: 'center',
-                    alignItems: 'center', zIndex: 9998
+                    alignItems: 'center', zIndex: 11000
                 }} onClick={closeTeamModal}>
                     <div style={{
                         background: 'var(--bg-primary)', padding: '2rem', borderRadius: '12px',
                         maxWidth: '500px', width: '90%', maxHeight: '70vh', overflowY: 'auto',
-                        position: 'relative', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)'
+                        position: 'relative', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)', zIndex: 11001
                     }} onClick={(e) => e.stopPropagation()}>
                         <button onClick={closeTeamModal} style={{
                             position: 'absolute', top: '10px', right: '15px', background: 'none',
-                            border: 'none', fontSize: '30px', cursor: 'pointer', color: 'var(--text-secondary)'
+                            border: 'none', fontSize: '30px', cursor: 'pointer', color: 'var(--text-secondary)', zIndex: 11002
                         }}>&times;</button>
                         <h2 style={{ color: 'var(--text-primary)', marginTop: 0 }}>{selectedTeam.teamName}</h2>
                         <div style={{ marginTop: '1.5rem' }}>

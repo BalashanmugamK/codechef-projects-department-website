@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
+import { fetchWithRetry, API_URL } from '../../utils/api';
 import ccLogo from '../../assets/cc.svg';
 
 const ForgotPasswordModal = () => {
@@ -14,13 +15,11 @@ const ForgotPasswordModal = () => {
         e.preventDefault();
         setError('');
         try {
-            const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-            const response = await fetch(`${API_BASE_URL}/api/auth/check-email`, {
+            const data = await fetchWithRetry(`${API_URL}/api/auth/check-email`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email })
             });
-            const data = await response.json();
             if (data.success) {
                 addNotification('Password recovery email would be sent!', { type: 'info' });
                 setSent(true);

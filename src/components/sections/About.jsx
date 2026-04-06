@@ -7,10 +7,16 @@ const About = () => {
     );
 
     useEffect(() => {
-        const storedContent = JSON.parse(localStorage.getItem('contentData')) || {};
-        if (storedContent.aboutText) {
-            setAboutText(storedContent.aboutText);
-        }
+        const updateAbout = () => {
+            const storedContent = JSON.parse(localStorage.getItem('contentData')) || {};
+            if (storedContent.aboutText) {
+                setAboutText(storedContent.aboutText);
+            }
+        };
+
+        updateAbout();
+        window.addEventListener('contentUpdate', updateAbout);
+        return () => window.removeEventListener('contentUpdate', updateAbout);
     }, []);
 
     return (

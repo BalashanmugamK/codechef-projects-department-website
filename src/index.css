@@ -489,6 +489,12 @@ body::-webkit-scrollbar-thumb {
   align-items: center;
   flex-wrap: wrap;
 }
+.auth-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
 
 .theme-toggle {
   background: var(--accent-primary-light);
@@ -1017,6 +1023,35 @@ body::-webkit-scrollbar-thumb {
   border-color: var(--accent-primary);
   color: white;
   box-shadow: 0 8px 20px rgba(255, 107, 53, 0.3);
+}
+
+#events .tab-btn:hover,
+#events .tab-btn.active {
+  border-color: var(--accent-primary);
+  background: rgba(255, 107, 53, 0.08);
+  color: var(--accent-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(255, 107, 53, 0.16);
+}
+
+#events .tab-btn {
+  transition: all var(--transition-base);
+}
+
+#events .event-card {
+  position: relative;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+#events .event-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  z-index: 3;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.12);
+}
+
+.events-grid.carousel-mode .event-card {
+  flex: 0 0 320px;
+  min-width: 320px;
 }
 
 #gamedev .gamedev-grid {
@@ -1833,6 +1868,25 @@ body::-webkit-scrollbar-thumb {
   margin-top: auto;
   padding-top: var(--spacing-lg);
   border-top: 1px solid var(--border-color);
+}
+
+.empty-state-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  border-radius: var(--radius-xl);
+  padding: calc(var(--spacing-3xl) + 0.5rem);
+  text-align: center;
+  color: var(--text-secondary);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+}
+
+.empty-state-box .empty-icon {
+  font-size: 3rem;
 }
 
 /* ============================================
@@ -3096,13 +3150,18 @@ body::-webkit-scrollbar-thumb {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
+  gap: 0.4rem;
+  width: auto;
+  min-width: 40px;
   height: 40px;
+  padding: 0 0.6rem;
   border-radius: var(--radius-md);
   background: var(--bg-tertiary);
   color: var(--text-secondary);
   transition: all var(--transition-base);
   border: 1px solid var(--border-color);
+  position: relative;
+  overflow: hidden;
 }
 
 .social-link:hover {
@@ -3110,6 +3169,20 @@ body::-webkit-scrollbar-thumb {
   color: white;
   transform: translateY(-3px);
   box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+}
+
+.social-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.social-link:hover .social-label {
+  display: inline;
+  opacity: 1;
 }
 
 .footer-heading {

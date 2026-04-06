@@ -3,15 +3,18 @@ import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
+import NotificationBell from './NotificationBell';
+import UserDashboard from '../pages/UserDashboard';
 import ccLogo from '../assets/cc.svg';
 
 const Navbar = () => {
     const { theme, toggleTheme } = useTheme();
-    const { user, logout, openLogin, openAdminLogin, openAdminDashboard } = useAuth();
+    const { user, logout, openLogin, openAdminLogin, openAdminDashboard, closeAdminDashboard, openUserProfile } = useAuth();
     const { addNotification } = useNotification();
     const [isOpen, setIsOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const [activeSection, setActiveSection] = useState('home');
+    const [showUserDashboard, setShowUserDashboard] = useState(false);
     const location = useLocation();
 
     // Scroll tracking for active link highlighting
@@ -122,20 +125,30 @@ const Navbar = () => {
                         )}
                     </button>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {/* Notification Bell - positioned above auth controls */}
+                    <NotificationBell />
+
+                    <div className="auth-actions" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto' }}>
                         {user ? (
                             <>
-                                {['admin', 'super-admin'].includes(user.role) && (
-                                    <button onClick={openAdminDashboard} className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem' }}>
-                                        Dashboard
+                                {user.role && ['admin', 'super-admin'].includes(user.role) ? (
+                                    <button onClick={openAdminDashboard} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', fontWeight: 600 }} title="Admin Dashboard">
+                                        🔐 Dashboard
+                                    </button>
+                                ) : (
+                                    <button
+                                      className="btn btn-secondary"
+                                      onClick={() => setShowUserDashboard(true)}
+                                      title="My Dashboard"
+                                      style={{ padding: '0.5rem 1rem', fontWeight: 600 }}
+                                    >
+                                      👤 {user.name}
                                     </button>
                                 )}
-                                <span id="userProfile" style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>
-                                    👤 {user.name}
-                                </span>
                                 <button
                                     onClick={() => {
                                         logout();
+                                        closeAdminDashboard();
                                         addNotification('Logged out Successfully!', { type: 'success' });
                                     }}
                                     className="btn btn-danger"
@@ -163,6 +176,11 @@ const Navbar = () => {
                     </button>
                 </div>
             </div>
+
+            {/* User Dashboard Modal */}
+            {showUserDashboard && (
+                <UserDashboard onClose={() => setShowUserDashboard(false)} />
+            )}
         </nav>
     );
 };

@@ -23,9 +23,9 @@ const AdminLoginModal = () => {
             if (result.success) {
                 addNotification(result.message, { type: 'success' });
                 closeAdminLogin();
-                openAdminDashboard();
                 setEmail('');
                 setPassword('');
+                openAdminDashboard();
             } else {
                 setError(result.message || 'Invalid admin credentials');
             }

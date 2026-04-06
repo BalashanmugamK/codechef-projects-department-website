@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
+import { fetchWithRetry, API_URL } from '../utils/api';
 
 const BroadcastMessages = () => {
     const { user } = useAuth();
-    const { addNotification } = useNotification();
+    const { addNotification, addAlert } = useNotification();
     const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -19,9 +20,7 @@ const BroadcastMessages = () => {
 
         setLoading(true);
         try {
-            const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-            const response = await fetch(`${API_BASE_URL}/api/messages`);
-            const data = await response.json();
+            const data = await fetchWithRetry(`${API_URL}/api/messages`);
 
             if (data.success && data.messages) {
                 const newMessages = data.messages.filter(msg => {
@@ -31,13 +30,16 @@ const BroadcastMessages = () => {
                 });
 
                 if (newMessages.length > 0) {
-                    // Show the latest broadcast message as a notification
-                    const latestMessage = newMessages[0];
-                    addNotification(`📢 ${latestMessage.text}`, { type: 'info', duration: 10000 });
-
-                    // Mark messages as seen
+                    // Show each new broadcast message with a persistent alert entry + temporary toast
                     const seenMessages = JSON.parse(localStorage.getItem('seenBroadcasts') || '[]');
-                    const updatedSeen = [...seenMessages, ...newMessages.map(m => m._id)];
+                    const updatedSeen = [...seenMessages];
+
+                    newMessages.forEach((msg) => {
+                        addNotification(`📢 ${msg.text}`, { type: 'info', duration: (msg.duration || 8000) });
+                        addAlert(`📢 ${msg.text}`, { type: 'info', duration: (msg.duration || 8000), autoClose: true });
+                        updatedSeen.push(msg._id);
+                    });
+
                     localStorage.setItem('seenBroadcasts', JSON.stringify(updatedSeen));
                 }
 

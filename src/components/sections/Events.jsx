@@ -1,29 +1,32 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { events } from '../../data/mockData';
-import { getAnimationDelayStyle } from '../../utils/animationUtils';
+import { classifyEvent, sortEvents, formatEventDate, getHappeningSoon } from '../../utils/dateUtils';
 
 const Events = () => {
     const [filter, setFilter] = useState('upcoming');
+    const [hoveredEventId, setHoveredEventId] = useState(null);
     const containerRef = useRef(null);
+    const animationIdRef = useRef(null);
+    const isHoveringRef = useRef(false);
     const [isHovering, setIsHovering] = useState(false);
 
-    const filteredEvents = events.filter(event => {
-        if (filter === 'all') return true;
-        const eventDate = new Date(event.date);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+    const resolvedEvents = events.map((event) => ({
+        ...event,
+        start: new Date(event.startDate || event.date),
+        end: new Date(event.endDate || event.date)
+    }));
 
-        if (filter === 'upcoming') return eventDate > today;
-        if (filter === 'ongoing') return eventDate.getTime() === today.getTime();
-        if (filter === 'past') return eventDate < today;
-        return true;
-    });
+    const filteredEvents = sortEvents(
+        resolvedEvents.filter((event) => {
+            const category = classifyEvent(event);
+            if (filter === 'all') return true;
+            return category === filter;
+        }),
+        filter
+    );
 
-    // Determine if we should use carousel mode (> 3 items)
     const useCarousel = filteredEvents.length > 3;
-
-    // Triple the items for infinite scroll illusion if carousel is active
     const displayEvents = useCarousel
         ? [...filteredEvents, ...filteredEvents, ...filteredEvents]
         : filteredEvents;
@@ -32,23 +35,29 @@ const Events = () => {
         const container = containerRef.current;
         if (!container || !useCarousel) return;
 
-        let animationId;
-        const scrollSpeed = 1; // 1px per frame
+        const scrollSpeed = 1;
 
-        const performAutoScroll = () => {
-            if (!isHovering && container.scrollWidth > container.clientWidth) {
+        const animate = () => {
+            if (!isHoveringRef.current && container.scrollWidth > container.clientWidth) {
                 container.scrollLeft += scrollSpeed;
                 const maxScroll = container.scrollWidth - container.clientWidth;
-                if (container.scrollLeft >= maxScroll - 1) {
+                if (container.scrollLeft >= maxScroll - 2) {
                     container.scrollLeft = 0;
                 }
             }
-            animationId = requestAnimationFrame(performAutoScroll);
+            animationIdRef.current = requestAnimationFrame(animate);
         };
 
-        animationId = requestAnimationFrame(performAutoScroll);
-        return () => cancelAnimationFrame(animationId);
-    }, [useCarousel, isHovering, filter]);
+        animationIdRef.current = requestAnimationFrame(animate);
+        return () => cancelAnimationFrame(animationIdRef.current);
+    }, [useCarousel, filter]);
+
+    const handleHover = (hovering) => {
+        isHoveringRef.current = hovering;
+        setIsHovering(hovering);
+    };
+
+    const capitalizeLabel = (value) => value.charAt(0).toUpperCase() + value.slice(1);
 
     return (
         <section className="section" id="events">
@@ -64,53 +73,43 @@ const Events = () => {
                         className={`tab-btn ${filter === type ? 'active' : ''}`}
                         onClick={() => setFilter(type)}
                     >
-                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                        {capitalizeLabel(type)}
                     </button>
                 ))}
             </div>
 
             <div
                 className={`events-grid ${useCarousel ? 'carousel-mode' : ''}`}
-                id="eventsDisplay"
                 ref={containerRef}
-                style={useCarousel ? { gap: '1.5rem' } : {}}
-                onMouseEnter={() => setIsHovering(true)}
-                onMouseLeave={() => setIsHovering(false)}
+                onMouseEnter={() => handleHover(true)}
+                onMouseLeave={() => handleHover(false)}
             >
                 {displayEvents.map((event, idx) => {
-                    const eventDate = new Date(event.date);
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    const isUpcoming = eventDate > today;
-                    const isOngoing = eventDate.getTime() === today.getTime();
-                    const isPast = eventDate < today;
+                    const category = classifyEvent(event);
+                    const isSoon = getHappeningSoon(event);
                     return (
                         <div
-                            className={`event-card ${isUpcoming ? 'event-upcoming' : isOngoing ? 'event-ongoing' : 'event-past'}`}
-                            key={`${event.id}-${idx}`}
-                            style={{
-                                animation: `fadeInUp 0.6s ease-out forwards`,
-                                animationDelay: `${idx * 0.05}s`,
-                                opacity: 0
-                            }}
+                            className={`event-card ${category === 'upcoming' ? 'event-upcoming' : category === 'ongoing' ? 'event-ongoing' : 'event-past'} ${hoveredEventId === (event.id || `${event.title}-${idx}`) ? 'event-highlighted' : ''}`}
+                            key={`${event.id || event.title}-${idx}`}
+                            onMouseEnter={() => { handleHover(true); setHoveredEventId(event.id || `${event.title}-${idx}`); }}
+                            onMouseLeave={() => { handleHover(false); setHoveredEventId(null); }}
+                            style={{ animation: `fadeInUp 0.55s ease-out forwards`, animationDelay: `${idx * 0.04}s`, opacity: 0 }}
                         >
                             <div className="event-header">
-                                <span className="event-chip">
-                                    {isUpcoming ? 'UPCOMING' : isOngoing ? 'ONGOING' : 'PAST'}
-                                </span>
-                                {isOngoing && <span className="event-pill">Happening Today</span>}
-                                {isUpcoming && <span className="event-pill">Happening Soon</span>}
+                                <span className="event-chip">{capitalizeLabel(category)}</span>
+                                {category === 'ongoing' && <span className="event-pill">Happening Today</span>}
+                                {isSoon && <span className="event-pill">Happening Soon</span>}
                             </div>
 
                             <h3 className="event-title">{event.title}</h3>
 
                             <div className="event-meta">
-                                <span>📅 {event.date}</span>
-                                <span className="event-location">📍 VIT Chennai</span>
+                                <span>📅 {formatEventDate(event.date, event.time)}</span>
+                                <span className="event-location">📍 {event.location || 'VIT Chennai'}</span>
                             </div>
 
                             <p className="event-description">
-                                {event.description || "Join us for an exciting session of learning and building."}
+                                {event.description || 'Join our upcoming event for hands-on learning and community collaboration.'}
                             </p>
 
                             <div className="event-footer">
@@ -119,19 +118,15 @@ const Events = () => {
                         </div>
                     );
                 })}
+
                 {filteredEvents.length === 0 && (
-                    <div className="no-events-message" style={{
-                        textAlign: 'center',
-                        padding: '2rem',
-                        color: 'var(--text-secondary)',
-                        fontSize: '1.1rem',
-                        width: '100%'
-                    }}>
-                        No upcoming events
+                    <div className="empty-state-box">
+                        <div className="empty-icon">📅</div>
+                        <p>No {capitalizeLabel(filter)} events at the moment.</p>
                     </div>
                 )}
             </div>
-        </section >
+        </section>
     );
 };
 

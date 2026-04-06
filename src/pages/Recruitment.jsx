@@ -3,9 +3,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNotification } from '../context/NotificationContext';
+import { fetchWithRetry, API_URL } from '../utils/api';
 import ccLogo from '../assets/cc.svg';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const ROLE_OPTIONS = [
     { value: 'frontend', label: 'Frontend Developer' },
@@ -63,17 +62,14 @@ const Recruitment = () => {
 
     useEffect(() => {
         const fetchSystemConfig = async () => {
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/system`);
-                const data = await response.json();
-                if (data.success && data.system) {
-                    setSystemConfig({
-                        recruitmentOpen: data.system.recruitmentOpen ?? true,
-                        maintenanceMode: data.system.maintenanceMode ?? false
-                    });
-                }
-            } catch (err) {
-                console.error('Failed to fetch system state:', err);
+            const data = await fetchWithRetry(`${API_URL}/api/system`, { method: 'GET' });
+            if (data.success && data.system) {
+                setSystemConfig({
+                    recruitmentOpen: data.system.recruitmentOpen ?? true,
+                    maintenanceMode: data.system.maintenanceMode ?? false
+                });
+            } else if (data.error) {
+                console.warn('Failed to fetch system state:', data.error);
             }
         };
 
@@ -92,31 +88,25 @@ const Recruitment = () => {
     };
 
     const fetchInterviewSlots = async () => {
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/interview-slots`);
-            const data = await response.json();
-            if (data.success) {
-                setInterviewSlots(data.slots);
-                if (data.slots.length > 0) {
-                    await fetchUserBookings();
-                    setShowBooking(true);
-                }
+        const data = await fetchWithRetry(`${API_URL}/api/interview-slots`, { method: 'GET' });
+        if (data.success) {
+            setInterviewSlots(data.slots || []);
+            if ((data.slots || []).length > 0) {
+                await fetchUserBookings();
+                setShowBooking(true);
             }
-        } catch (err) {
-            console.error('Failed to fetch interview slots:', err);
+        } else {
+            console.error('Failed to fetch interview slots:', data.error);
             setError('Failed to fetch interview slots');
         }
     };
 
     const fetchUserBookings = async () => {
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/bookings/${formData.email}`);
-            const data = await response.json();
-            if (data.success) {
-                setExistingBookings(data.bookings);
-            }
-        } catch (err) {
-            console.error('Failed to fetch user bookings:', err);
+        const data = await fetchWithRetry(`${API_URL}/api/bookings/${formData.email}`, { method: 'GET' });
+        if (data.success) {
+            setExistingBookings(data.bookings || []);
+        } else {
+            console.warn('Failed to fetch user bookings:', data.error);
         }
     };
 
@@ -144,7 +134,7 @@ const Recruitment = () => {
         setLoading(true);
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/applications`, {
+            const data = await fetchWithRetry(`${API_URL}/api/applications`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -152,18 +142,12 @@ const Recruitment = () => {
                 body: JSON.stringify(formData)
             });
 
-            if (!response.ok) {
-                throw new Error(`Server error: ${response.status}`);
-            }
-
-            const data = await response.json();
-
             if (data.success) {
                 setSubmitted(true);
                 addNotification('Application submitted successfully! We will contact you soon.', { type: 'success', duration: 3000 });
             } else {
-                setError(data.message || 'Failed to submit application');
-                addNotification(data.message || 'Failed to submit application', { type: 'error', duration: 3000 });
+                setError(data.error || data.message || 'Failed to submit application');
+                addNotification(data.error || data.message || 'Failed to submit application', { type: 'error', duration: 3000 });
             }
         } catch (err) {
             console.error('Application error:', err);
@@ -189,19 +173,13 @@ const Recruitment = () => {
         setLoading(true);
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/bookings`, {
+            const data = await fetchWithRetry(`${API_URL}/api/bookings`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ email: formData.email, date, time })
             });
-
-            if (!response.ok) {
-                throw new Error(`Server error: ${response.status}`);
-            }
-
-            const data = await response.json();
 
             if (data.success) {
                 const successText = `Booked interview slot: ${date} @ ${time}`;
@@ -214,7 +192,7 @@ const Recruitment = () => {
                     setShowBooking(false);
                 }, 1500);
             } else {
-                const errorText = data.message || 'Failed to book slot';
+                const errorText = data.error || data.message || 'Failed to book slot';
                 setBookingMsg(errorText);
                 addNotification(errorText, { type: 'error', duration: 5000 });
             }

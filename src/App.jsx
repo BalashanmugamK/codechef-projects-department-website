@@ -10,8 +10,8 @@ import Recruitment from './pages/Recruitment';
 function App() {
   return (
     <ThemeProvider>
-      <NotificationProvider>
-        <AuthProvider>
+      <AuthProvider>
+        <NotificationProvider>
           <NotificationCenter />
           <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <Routes>
@@ -21,8 +21,8 @@ function App() {
               </Route>
             </Routes>
           </Router>
-        </AuthProvider>
-      </NotificationProvider>
+        </NotificationProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

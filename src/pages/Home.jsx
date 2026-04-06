@@ -7,12 +7,10 @@ import Research from '../components/sections/Research';
 import Achievements from '../components/sections/Achievements';
 import GameDev from '../components/sections/GameDev';
 import Quest from '../components/sections/Quest';
-import BroadcastMessages from '../components/BroadcastMessages';
 
 const Home = () => {
     return (
         <div className="home-page">
-            <BroadcastMessages />
             <Hero />
             <About />
             <Members />

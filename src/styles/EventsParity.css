@@ -28,6 +28,12 @@
     opacity: 1;
 }
 
+.event-card.event-highlighted {
+    transform: translateY(-6px);
+    box-shadow: 0 24px 45px rgba(255, 107, 53, 0.18);
+    border-color: rgba(255, 140, 66, 0.45);
+}
+
 .event-card.event-upcoming {
     border-left: 4px solid var(--accent-success);
 }

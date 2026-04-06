@@ -1,23 +1,33 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useNotification } from '../context/NotificationContext';
 
 const Hero = () => {
     const codeRef = useRef(null);
     const cursorRef = useRef(null);
     const [content, setContent] = useState({
         heroTitle: 'Projects Department',
-        heroSubtitle: 'Building real-world applications, research-driven solutions, and collaborative software systems'
+        heroSubtitle: 'Building real-world applications, research-driven solutions, and collaborative software systems',
+        heroButtonText: 'Join Our Team',
+        heroButtonLink: '/recruitment'
     });
     const [showLoginHint, setShowLoginHint] = useState(false);
     const { user, openLogin } = useAuth();
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Legacy hero copy from static version for consistent branding
+        const storedContent = JSON.parse(localStorage.getItem('contentData')) || {};
+        if (storedContent && Object.keys(storedContent).length > 0) {
+            setContent(prev => ({ ...prev, ...storedContent }));
+            return;
+        }
+
         setContent({
             heroTitle: 'Projects Department',
-            heroSubtitle: 'Building real-world applications, research-driven solutions, and collaborative software systems'
+            heroSubtitle: 'Building real-world applications, research-driven solutions, and collaborative software systems',
+            heroButtonText: 'Join Our Team',
+            heroButtonLink: '/recruitment'
         });
     }, []);
 
@@ -73,13 +83,16 @@ const Hero = () => {
 
     const updateCursorPosition = useCallback(() => {
         if (!cursorRef.current || !codeRef.current) return;
-        
+
         const anchor = codeRef.current.querySelector('.caret-anchor');
         const card = codeRef.current;
 
+        if (!cursorRef.current || !card) return;
         if (!anchor) {
-            cursorRef.current.style.left = '12px';
-            cursorRef.current.style.top = '12px';
+            if (cursorRef.current) {
+                cursorRef.current.style.left = '12px';
+                cursorRef.current.style.top = '12px';
+            }
             return;
         }
 
@@ -90,11 +103,13 @@ const Hero = () => {
             const left = Math.max(8, anchorRect.left - cardRect.left + anchorRect.width);
             const top = Math.max(8, anchorRect.top - cardRect.top);
 
-            cursorRef.current.style.left = left + 'px';
-            cursorRef.current.style.top = top + 'px';
+            if (cursorRef.current) {
+                cursorRef.current.style.left = left + 'px';
+                cursorRef.current.style.top = top + 'px';
 
-            if (cursorRef.current.style.opacity === '0') {
-                cursorRef.current.style.opacity = '1';
+                if (cursorRef.current.style.opacity === '0') {
+                    cursorRef.current.style.opacity = '1';
+                }
             }
         });
     }, []);
@@ -106,52 +121,55 @@ const Hero = () => {
 
         const typeBlock = async () => {
             if (!codeRef.current) return;
-            
+
             const preElement = codeRef.current.querySelector('.code-output');
             if (!preElement) return;
-            
+
             // Clear content but keep the cursor
             preElement.textContent = '';
-            
+
             for (let lineIdx = 0; lineIdx < codeLines.length; lineIdx++) {
                 const line = codeLines[lineIdx];
                 const tokens = tokenizeLine(line);
 
                 for (let tokenIdx = 0; tokenIdx < tokens.length; tokenIdx++) {
                     const token = tokens[tokenIdx];
-                    
+
                     for (let charIdx = 0; charIdx < token.text.length; charIdx++) {
                         if (!mounted) return;
-                        
+
                         const char = token.text[charIdx];
                         const charSpan = document.createElement('span');
                         charSpan.style.color = token.color;
                         charSpan.textContent = char;
-                        preElement.appendChild(charSpan);
 
-                        // Ensure caret anchor exists at end
-                        let anchor = preElement.querySelector('.caret-anchor');
-                        if (!anchor) {
-                            anchor = document.createElement('span');
-                            anchor.className = 'caret-anchor';
-                            anchor.style.display = 'inline-block';
-                            anchor.style.width = '0px';
-                            anchor.style.height = '1em';
-                            preElement.appendChild(anchor);
-                        } else {
-                            preElement.appendChild(anchor);
+                        if (preElement) {
+                            preElement.appendChild(charSpan);
+
+                            // Ensure caret anchor exists at end
+                            let anchor = preElement.querySelector('.caret-anchor');
+                            if (!anchor) {
+                                anchor = document.createElement('span');
+                                anchor.className = 'caret-anchor';
+                                anchor.style.display = 'inline-block';
+                                anchor.style.width = '0px';
+                                anchor.style.height = '1em';
+                                preElement.appendChild(anchor);
+                            } else {
+                                preElement.appendChild(anchor);
+                            }
+
+                            updateCursorPosition();
                         }
-
-                        updateCursorPosition();
                         await wait(30 + Math.random() * 40);
                     }
                 }
 
                 // Add line break
-                if (lineIdx < codeLines.length - 1) {
-                    preElement.appendChild(document.createTextNode('\n'));
+                if (lineIdx < codeLines.length - 1 && preElement) {
+                    const br = document.createElement('br');
+                    preElement.appendChild(br);
                 }
-
                 await wait(600);
             }
         };
@@ -183,28 +201,58 @@ const Hero = () => {
         const handleScroll = () => {
             const scrolled = window.pageYOffset;
             const blobs = document.querySelectorAll('.gradient-blob');
-            blobs.forEach((blob, index) => {
-                const yPos = scrolled * (0.5 + index * 0.2);
-                blob.style.transform = `translateY(${yPos}px)`;
-            });
+            if (blobs && blobs.length > 0) {
+                blobs.forEach((blob, index) => {
+                    if (blob) {
+                        const yPos = scrolled * (0.5 + index * 0.2);
+                        blob.style.transform = `translateY(${yPos}px)`;
+                    }
+                });
+            }
+        };
+
+        const updateContent = () => {
+            const storedContent = JSON.parse(localStorage.getItem('contentData')) || {};
+            if (storedContent && Object.keys(storedContent).length > 0) {
+                setContent(prev => ({ ...prev, ...storedContent }));
+            }
         };
 
         window.addEventListener('scroll', handleScroll, { passive: true });
-        return () => window.removeEventListener('scroll', handleScroll);
+        window.addEventListener('contentUpdate', updateContent);
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+            window.removeEventListener('contentUpdate', updateContent);
+        };
     }, []);
 
-    const handleJoinClick = (event) => {
+    const { addNotification } = useNotification();
+
+    const handleHeroCTA = (event) => {
         event.preventDefault();
-        if (user && user.role === 'admin') {
-            // Admins are already part of the team, show message
-            alert('You are already an admin and part of the team!');
+
+        if (user && ['admin', 'super-admin'].includes(user.role)) {
+            addNotification('You are already an admin and part of the team!', { type: 'info' });
             return;
         }
-        if (user) {
-            navigate('/recruitment');
+
+        if (!user) {
+            addNotification('Login to Apply for Recruitment', { type: 'warning' });
+            openLogin();
             return;
         }
-        openLogin();
+
+        const url = content.heroButtonLink || '/recruitment';
+        if (url.startsWith('http')) {
+            window.location.href = url;
+        } else if (url.startsWith('#')) {
+            const target = document.querySelector(url);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth' });
+            }
+        } else {
+            navigate(url);
+        }
     };
 
     return (
@@ -219,9 +267,9 @@ const Hero = () => {
                 <div className="hero-text">
                     <h1 className="hero-title">
                         <span className="text-animate word-1">Welcome to</span>
-                        <span className="text-animate word-2 highlight">{content.heroTitle}</span>
+                        <span className="text-animate word-2 highlight">{content?.heroTitle || 'Projects Department'}</span>
                     </h1>
-                    <p className="hero-subtitle">{content.heroSubtitle}</p>
+                    <p className="hero-subtitle">{content?.heroSubtitle || 'Building real-world applications, research-driven solutions, and collaborative software systems'}</p>
                     <div className="hero-stats">
                         <div className="stat-item">
                             <span className="stat-number">50+</span>
@@ -237,7 +285,9 @@ const Hero = () => {
                         </div>
                     </div>
                     <div className="hero-buttons">
-                        <Link id="joinTeamBtn" to="/recruitment" onClick={handleJoinClick} className="btn btn-primary btn-lg">Join Our Team</Link>
+                        <a id="joinTeamBtn" href={content.heroButtonLink || '/recruitment'} onClick={handleHeroCTA} className="btn btn-primary btn-lg">
+                            {content.heroButtonText || 'Join Our Team'}
+                        </a>
                         <a href="#projects" className="btn btn-secondary btn-lg">Explore Projects</a>
                     </div>
                 </div>
