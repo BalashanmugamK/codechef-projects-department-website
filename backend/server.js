@@ -532,8 +532,8 @@ app.get('/api/test', (req, res) => {
     res.json({ message: 'Test route works' });
 });
 
-// Catch-all for unknown API routes
-app.all('/api/*', (req, res) => {
+// Catch-all for unknown API routes (Express 5 compatible)
+app.all('/api/:path(*)', (req, res) => {
   res.status(404).json({ success: false, message: 'API route not found' });
 });
 
