@@ -340,13 +340,25 @@ app.post('/api/auth/admin-login', async (req, res) => {
     }
 });
 
-// Temporary route to seed admin accounts if none exist
-app.post('/api/auth/seed-admins', async (req, res) => {
+// Temporary route to check admin accounts
+app.get('/api/auth/check-admins', async (req, res) => {
     try {
-        const adminCount = await AdminAccount.countDocuments();
-        if (adminCount > 0) {
-            return res.status(400).json({ success: false, message: 'Admin accounts already exist' });
-        }
+        const admins = await AdminAccount.find({}).select('email role createdAt');
+        res.json({ 
+            success: true, 
+            count: admins.length,
+            admins: admins 
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to check admins', error: error.message });
+    }
+});
+    try {
+        console.log('🌱 Force seeding admin accounts...');
+        
+        // Delete all existing admin accounts
+        await AdminAccount.deleteMany({});
+        console.log('🗑️ Deleted existing admin accounts');
         
         const defaultAdmins = [
             { email: 'admin@codechef-projects.com', password: 'Admin@123', role: 'super-admin' },
@@ -354,11 +366,24 @@ app.post('/api/auth/seed-admins', async (req, res) => {
         ];
         
         for (const adminData of defaultAdmins) {
-            await new AdminAccount(adminData).save();
+            const admin = new AdminAccount(adminData);
+            await admin.save();
+            console.log(`✓ Created admin: ${adminData.email}`);
         }
         
-        res.json({ success: true, message: 'Admin accounts seeded successfully' });
+        const count = await AdminAccount.countDocuments();
+        console.log(`✅ Total admin accounts: ${count}`);
+        
+        res.json({ 
+            success: true, 
+            message: 'Admin accounts force-seeded successfully',
+            admins: [
+                { email: 'admin@codechef-projects.com', password: 'Admin@123' },
+                { email: 'lead@codechef-projects.com', password: 'Lead@123' }
+            ]
+        });
     } catch (error) {
+        console.error('❌ Seeding error:', error);
         res.status(500).json({ success: false, message: 'Failed to seed admins', error: error.message });
     }
 });
