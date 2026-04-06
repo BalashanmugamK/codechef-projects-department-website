@@ -353,6 +353,9 @@ app.get('/api/auth/check-admins', async (req, res) => {
         res.status(500).json({ success: false, message: 'Failed to check admins', error: error.message });
     }
 });
+
+// Temporary route to seed admin accounts (force recreate)
+app.post('/api/auth/seed-admins', async (req, res) => {
     try {
         console.log('🌱 Force seeding admin accounts...');
         
