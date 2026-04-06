@@ -532,9 +532,15 @@ app.get('/api/test', (req, res) => {
     res.json({ message: 'Test route works' });
 });
 
-// Catch-all for unknown API routes (Express 5 compatible)
-app.all('/api/:path(*)', (req, res) => {
-  res.status(404).json({ success: false, message: 'API route not found' });
+// ===== FALLBACK ROUTES (ORDER MATTERS: Must come AFTER all specific routes) =====
+// Catch-all for unknown API routes - using app.use() is the Express 5 safe way
+app.use('/api', (req, res) => {
+  res.status(404).json({ success: false, message: 'API route not found', path: req.path });
+});
+
+// Fallback for root and non-API routes
+app.use('*', (req, res) => {
+  res.status(404).json({ success: false, message: 'Route not found', path: req.path });
 });
 
 // Global error handler
