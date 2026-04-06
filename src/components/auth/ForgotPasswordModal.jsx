@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
-import { fetchWithRetry, API_URL } from '../../utils/api';
+import { fetchWithRetry } from '../../utils/api';
 import ccLogo from '../../assets/cc.svg';
 
 const ForgotPasswordModal = () => {
@@ -15,7 +15,7 @@ const ForgotPasswordModal = () => {
         e.preventDefault();
         setError('');
         try {
-            const data = await fetchWithRetry(`${API_URL}/api/auth/check-email`, {
+            const data = await fetchWithRetry('/api/auth/check-email', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email })

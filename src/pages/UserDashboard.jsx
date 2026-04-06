@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNotification } from '../context/NotificationContext';
-import { fetchWithRetry, API_URL } from '../utils/api';
+import { fetchWithRetry } from '../utils/api';
 
 const UserDashboard = ({ onClose }) => {
   const { user, token, updateUser, deleteUser, logout } = useAuth();
@@ -30,12 +30,12 @@ const UserDashboard = ({ onClose }) => {
       if (deleteTarget.type === 'account') {
         data = await deleteUser(user?._id || user?.id || '');
       } else if (deleteTarget.type === 'project') {
-        data = await fetchWithRetry(`${API_URL}/api/users/projects/${deleteTarget.id}`, {
+        data = await fetchWithRetry(`/api/users/projects/${deleteTarget.id}`, {
           method: 'DELETE',
           headers: { Authorization: `Bearer ${token}` }
         });
       } else if (deleteTarget.type === 'hackathon') {
-        data = await fetchWithRetry(`${API_URL}/api/users/hackathons/${deleteTarget.id}`, {
+        data = await fetchWithRetry(`/api/users/hackathons/${deleteTarget.id}`, {
           method: 'DELETE',
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -110,7 +110,7 @@ const UserDashboard = ({ onClose }) => {
 
   const fetchProjects = async () => {
     try {
-      const data = await fetchWithRetry(`${API_URL}/api/users/projects`, {
+      const data = await fetchWithRetry('/api/users/projects', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (data.success) setProjects(data.projects || []);
@@ -121,7 +121,7 @@ const UserDashboard = ({ onClose }) => {
 
   const fetchHackathons = async () => {
     try {
-      const data = await fetchWithRetry(`${API_URL}/api/users/hackathons`, {
+      const data = await fetchWithRetry('/api/users/hackathons', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (data.success) setHackathons(data.hackathons || []);
@@ -135,7 +135,7 @@ const UserDashboard = ({ onClose }) => {
     setLoading(true);
 
     try {
-      const data = await fetchWithRetry(`${API_URL}/api/users/profile`, {
+      const data = await fetchWithRetry('/api/users/profile', {
         method: 'PATCH',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -180,7 +180,7 @@ const UserDashboard = ({ onClose }) => {
 
     setLoading(true);
     try {
-      const data = await fetchWithRetry(`${API_URL}/api/users/change-password`, {
+      const data = await fetchWithRetry('/api/users/change-password', {
         method: 'PATCH',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -209,7 +209,7 @@ const UserDashboard = ({ onClose }) => {
     setLoading(true);
 
     try {
-      const data = await fetchWithRetry(`${API_URL}/api/users/projects`, {
+      const data = await fetchWithRetry('/api/users/projects', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -236,7 +236,7 @@ const UserDashboard = ({ onClose }) => {
     setLoading(true);
 
     try {
-      const data = await fetchWithRetry(`${API_URL}/api/users/hackathons`, {
+      const data = await fetchWithRetry('/api/users/hackathons', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

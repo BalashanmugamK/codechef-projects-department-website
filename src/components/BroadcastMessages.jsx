@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
-import { fetchWithRetry, API_URL } from '../utils/api';
+import { fetchWithRetry } from '../utils/api';
 
 const BroadcastMessages = () => {
     const { user } = useAuth();
@@ -20,7 +20,7 @@ const BroadcastMessages = () => {
 
         setLoading(true);
         try {
-            const data = await fetchWithRetry(`${API_URL}/api/messages`);
+            const data = await fetchWithRetry('/api/messages');
 
             if (data.success && data.messages) {
                 const newMessages = data.messages.filter(msg => {

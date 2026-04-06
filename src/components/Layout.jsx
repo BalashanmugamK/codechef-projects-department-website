@@ -10,7 +10,7 @@ import CustomCursor from './CustomCursor';
 import useScrollAnimations from '../utils/useScrollAnimations';
 import AdminModal from './auth/AdminModal';
 import { useAuth } from '../context/AuthContext';
-import { fetchWithRetry, API_URL } from '../utils/api';
+import { fetchWithRetry } from '../utils/api';
 import { useEffect } from 'react';
 
 const Layout = () => {
@@ -25,7 +25,7 @@ const Layout = () => {
     }, [isAdminDashboardOpen, user?.role]);
 
     useEffect(() => {
-        fetchWithRetry(`${API_URL}/api/ping`, { method: 'GET' }, 2)
+        fetchWithRetry('/api/ping', { method: 'GET' }, 2)
             .then((data) => {
                 if (!data.success) {
                     console.warn('Backend ping warning:', data.error);

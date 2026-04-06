@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getAnimationDelayStyle } from '../../utils/animationUtils';
 import { getMemberPlaceholder } from '../../utils/placeholderUtils';
-import { fetchWithRetry, API_URL } from '../../utils/api';
+import { fetchWithRetry } from '../../utils/api';
 import { members as mockMembers } from '../../data/mockData';
 
 const Members = () => {
@@ -20,7 +20,7 @@ const Members = () => {
     setError('');
 
     try {
-      const data = await fetchWithRetry(`${API_URL}/api/members`, { method: 'GET' });
+      const data = await fetchWithRetry('/api/members', { method: 'GET' });
       if (data.success && Array.isArray(data.members)) {
         let filtered = data.members.filter(m => {
           const memberTenure = m.tenure || '2025-26';

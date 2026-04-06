@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
-import { fetchWithRetry, API_URL } from '../utils/api';
+import { fetchWithRetry } from '../utils/api';
 
 const NotificationContext = createContext();
 
@@ -25,7 +25,7 @@ export const NotificationProvider = ({ children }) => {
 
     try {
       setLoading(true);
-      const data = await fetchWithRetry(`${API_URL}/api/notifications`, {
+      const data = await fetchWithRetry('/api/notifications', {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -102,7 +102,7 @@ export const NotificationProvider = ({ children }) => {
     if (!token) return;
 
     try {
-      const data = await fetchWithRetry(`${API_URL}/api/notifications/${id}/read`, {
+      const data = await fetchWithRetry(`/api/notifications/${id}/read`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -124,7 +124,7 @@ export const NotificationProvider = ({ children }) => {
     if (!token) return;
 
     try {
-      const data = await fetchWithRetry(`${API_URL}/api/notifications/${id}/dismiss`, {
+      const data = await fetchWithRetry(`/api/notifications/${id}/dismiss`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -155,7 +155,7 @@ export const NotificationProvider = ({ children }) => {
     if (!token) return;
 
     const promises = alerts.map(alert =>
-      fetchWithRetry(`${API_URL}/api/notifications/${alert.id}/dismiss`, {
+      fetchWithRetry(`/api/notifications/${alert.id}/dismiss`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,

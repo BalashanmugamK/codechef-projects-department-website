@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
-import { fetchWithRetry, API_URL } from '../../utils/api';
+import { fetchWithRetry } from '../../utils/api';
 import { getMemberPlaceholder } from '../../utils/placeholderUtils';
 
 // Inline SVG icon components
@@ -109,13 +109,13 @@ const AdminModal = ({ isOpen, onClose }) => {
         // Load dynamic data from backend
         const loadAllData = async () => {
             try {
-                const slotsData = await fetchWithRetry(`${API_URL}/api/interview-slots`, { method: 'GET' });
+                const slotsData = await fetchWithRetry('/api/interview-slots', { method: 'GET' });
                 if (slotsData.success) setInterviewSlots(slotsData.slots || []);
 
-                const appsData = await fetchWithRetry(`${API_URL}/api/applications`, { method: 'GET' });
+                const appsData = await fetchWithRetry('/api/applications', { method: 'GET' });
                 if (appsData.success) setApplications(appsData.applications || []);
 
-                const membersData = await fetchWithRetry(`${API_URL}/api/members`, { method: 'GET' });
+                const membersData = await fetchWithRetry('/api/members', { method: 'GET' });
                 if (membersData.success) {
                     const byTenureGroup = {};
                     membersData.members.forEach(m => {
@@ -128,7 +128,7 @@ const AdminModal = ({ isOpen, onClose }) => {
                     setAppMembers(byTenureGroup);
                 }
 
-                const systemData = await fetchWithRetry(`${API_URL}/api/system`, { method: 'GET' });
+                const systemData = await fetchWithRetry('/api/system', { method: 'GET' });
                 if (systemData.success && systemData.system) {
                     setSystemConfig({
                         recruitmentOpen: systemData.system.recruitmentOpen ?? true,
@@ -141,7 +141,7 @@ const AdminModal = ({ isOpen, onClose }) => {
                 const adminsData = await getAdmins();
                 if (Array.isArray(adminsData)) setAdminAccounts(adminsData);
 
-                const usersData = await fetchWithRetry(`${API_URL}/api/users`, { method: 'GET' });
+                const usersData = await fetchWithRetry('/api/users', { method: 'GET' });
                 if (usersData.success) setAllUsers(usersData.users || []);
                 else if (usersData.error) console.warn('Failed to fetch user accounts:', usersData.error);
             } catch (error) {
@@ -218,7 +218,7 @@ const AdminModal = ({ isOpen, onClose }) => {
         if (!slotDate || !slotTime) { setSlotsMsg('Both date and time are required'); return; }
 
         try {
-            const data = await fetchWithRetry(`${API_URL}/api/admin/interview-slots`, {
+            const data = await fetchWithRetry('/api/admin/interview-slots', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -231,7 +231,7 @@ const AdminModal = ({ isOpen, onClose }) => {
                 setSlotsMsg(`✓ ${messageText}`);
                 addNotification(messageText, { type: 'success' });
 
-                fetchWithRetry(`${API_URL}/api/admin/messages`, {
+                fetchWithRetry('/api/admin/messages', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -253,7 +253,7 @@ const AdminModal = ({ isOpen, onClose }) => {
     };
 
     const handleRemoveSlot = async (slotId) => {
-        const data = await fetchWithRetry(`${API_URL}/api/admin/interview-slots/${slotId}`, {
+        const data = await fetchWithRetry(`/api/admin/interview-slots/${slotId}`, {
             method: 'DELETE',
             headers: {
                 ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -271,7 +271,7 @@ const AdminModal = ({ isOpen, onClose }) => {
         if (!window.confirm(`Accept ${app.name} as a member?`)) return;
 
         try {
-            const deleteResponse = await fetchWithRetry(`${API_URL}/api/admin/applications/${app._id || app.id}`, {
+            const deleteResponse = await fetchWithRetry(`/api/admin/applications/${app._id || app.id}`, {
                 method: 'DELETE',
                 headers: {
                     ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -280,7 +280,7 @@ const AdminModal = ({ isOpen, onClose }) => {
             if (deleteResponse.success) {
                 alert(`✓ ${app.name} has been accepted! Email notification sent.`);
                 setApplications(prev => prev.filter(a => (a._id || a.id) !== (app._id || app.id)));
-                await fetchWithRetry(`${API_URL}/api/admin/members`, {
+                await fetchWithRetry('/api/admin/members', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -311,7 +311,7 @@ const AdminModal = ({ isOpen, onClose }) => {
         if (!window.confirm(`Reject application for ${app.name}?`)) return;
 
         try {
-            const data = await fetchWithRetry(`${API_URL}/api/admin/applications/${app._id || app.id}`, {
+            const data = await fetchWithRetry(`/api/admin/applications/${app._id || app.id}`, {
                 method: 'DELETE',
                 headers: {
                     ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -354,7 +354,7 @@ const AdminModal = ({ isOpen, onClose }) => {
     const handleDeleteUser = async (userId) => {
         if (!window.confirm('Delete this user account?')) return;
         try {
-            const data = await fetchWithRetry(`${API_URL}/api/users/${userId}`, {
+            const data = await fetchWithRetry(`/api/users/${userId}`, {
                 method: 'DELETE',
                 headers: {
                     ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -387,7 +387,7 @@ const AdminModal = ({ isOpen, onClose }) => {
 
     const handleSaveUser = async (userId) => {
         try {
-            const data = await fetchWithRetry(`${API_URL}/api/users/${userId}`, {
+            const data = await fetchWithRetry(`/api/users/${userId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -417,7 +417,7 @@ const AdminModal = ({ isOpen, onClose }) => {
             photo: memberForm.photo || ''
         };
 
-        const endpoint = editingMemberId ? `${API_URL}/api/admin/members/${editingMemberId}` : `${API_URL}/api/admin/members`;
+        const endpoint = editingMemberId ? `/api/admin/members/${editingMemberId}` : '/api/admin/members';
         const method = editingMemberId ? 'PUT' : 'POST';
 
         try {
@@ -447,7 +447,7 @@ const AdminModal = ({ isOpen, onClose }) => {
     const handleDeleteMember = async (id) => {
         if (!window.confirm('Are you sure you want to remove this member?')) return;
         try {
-            const data = await fetchWithRetry(`${API_URL}/api/admin/members/${id}`, {
+            const data = await fetchWithRetry(`/api/admin/members/${id}`, {
                 method: 'DELETE',
                 headers: {
                     ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -524,7 +524,7 @@ const AdminModal = ({ isOpen, onClose }) => {
                 ...((key === 'maintenanceMode') && { maintenanceMode: val })
             };
 
-            const data = await fetchWithRetry(`${API_URL}/api/system`, {
+            const data = await fetchWithRetry('/api/system', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newConfig)
@@ -551,7 +551,7 @@ const AdminModal = ({ isOpen, onClose }) => {
         }
 
         try {
-            const data = await fetchWithRetry(`${API_URL}/api/admin/messages`, {
+            const data = await fetchWithRetry('/api/admin/messages', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

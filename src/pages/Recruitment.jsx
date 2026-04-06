@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNotification } from '../context/NotificationContext';
-import { fetchWithRetry, API_URL } from '../utils/api';
+import { fetchWithRetry } from '../utils/api';
 import ccLogo from '../assets/cc.svg';
 
 const ROLE_OPTIONS = [
@@ -62,7 +62,7 @@ const Recruitment = () => {
 
     useEffect(() => {
         const fetchSystemConfig = async () => {
-            const data = await fetchWithRetry(`${API_URL}/api/system`, { method: 'GET' });
+            const data = await fetchWithRetry('/api/system', { method: 'GET' });
             if (data.success && data.system) {
                 setSystemConfig({
                     recruitmentOpen: data.system.recruitmentOpen ?? true,
@@ -88,7 +88,7 @@ const Recruitment = () => {
     };
 
     const fetchInterviewSlots = async () => {
-        const data = await fetchWithRetry(`${API_URL}/api/interview-slots`, { method: 'GET' });
+        const data = await fetchWithRetry('/api/interview-slots', { method: 'GET' });
         if (data.success) {
             setInterviewSlots(data.slots || []);
             if ((data.slots || []).length > 0) {
@@ -102,7 +102,7 @@ const Recruitment = () => {
     };
 
     const fetchUserBookings = async () => {
-        const data = await fetchWithRetry(`${API_URL}/api/bookings/${formData.email}`, { method: 'GET' });
+        const data = await fetchWithRetry(`/api/bookings/${formData.email}`, { method: 'GET' });
         if (data.success) {
             setExistingBookings(data.bookings || []);
         } else {
@@ -134,7 +134,7 @@ const Recruitment = () => {
         setLoading(true);
 
         try {
-            const data = await fetchWithRetry(`${API_URL}/api/applications`, {
+            const data = await fetchWithRetry('/api/applications', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -173,7 +173,7 @@ const Recruitment = () => {
         setLoading(true);
 
         try {
-            const data = await fetchWithRetry(`${API_URL}/api/bookings`, {
+            const data = await fetchWithRetry('/api/bookings', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

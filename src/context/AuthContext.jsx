@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { fetchWithRetry, API_URL } from '../utils/api';
+import { fetchWithRetry } from '../utils/api';
 
 const AuthContext = createContext();
 
@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         try {
-            const data = await fetchWithRetry(`${API_URL}/api/auth/login`, {
+            const data = await fetchWithRetry('/api/auth/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }) => {
 
     const adminLogin = async (email, password) => {
         try {
-            const data = await fetchWithRetry(`${API_URL}/api/auth/admin-login`, {
+            const data = await fetchWithRetry('/api/auth/admin-login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -96,7 +96,7 @@ export const AuthProvider = ({ children }) => {
 
     const registerUser = async (userData) => {
         try {
-            const data = await fetchWithRetry(`${API_URL}/api/auth/register`, {
+            const data = await fetchWithRetry('/api/auth/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -131,7 +131,7 @@ export const AuthProvider = ({ children }) => {
                 throw new Error('No auth token available for admin requests');
             }
 
-            const data = await fetchWithRetry(`${API_URL}/api/admin/accounts`, {
+            const data = await fetchWithRetry('/api/admin/accounts', {
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`
@@ -161,7 +161,7 @@ export const AuthProvider = ({ children }) => {
                 throw new Error('No auth token available for admin requests');
             }
 
-            const data = await fetchWithRetry(`${API_URL}/api/admin/accounts`, {
+            const data = await fetchWithRetry('/api/admin/accounts', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -183,7 +183,7 @@ export const AuthProvider = ({ children }) => {
                 throw new Error('No auth token available for admin requests');
             }
 
-            const data = await fetchWithRetry(`${API_URL}/api/admin/accounts/${email}/password`, {
+            const data = await fetchWithRetry(`/api/admin/accounts/${email}/password`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -205,7 +205,7 @@ export const AuthProvider = ({ children }) => {
                 throw new Error('No auth token available for user requests');
             }
 
-            const data = await fetchWithRetry(`${API_URL}/api/users`, {
+            const data = await fetchWithRetry('/api/users', {
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`
@@ -226,7 +226,7 @@ export const AuthProvider = ({ children }) => {
 
     const deleteUser = async (id) => {
         try {
-            const data = await fetchWithRetry(`${API_URL}/api/users/${id}`, {
+            const data = await fetchWithRetry(`/api/users/${id}`, {
                 method: 'DELETE',
                 headers: {
                     ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -241,7 +241,7 @@ export const AuthProvider = ({ children }) => {
 
     const updateUser = async (id, dataToUpdate) => {
         try {
-            const data = await fetchWithRetry(`${API_URL}/api/users/${id}`, {
+            const data = await fetchWithRetry(`/api/users/${id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
