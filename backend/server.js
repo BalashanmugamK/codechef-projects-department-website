@@ -538,8 +538,8 @@ app.use('/api', (req, res) => {
   res.status(404).json({ success: false, message: 'API route not found', path: req.path });
 });
 
-// Fallback for root and non-API routes
-app.use('*', (req, res) => {
+// Global fallback for all other routes (Express 5: NO wildcard syntax!)
+app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Route not found', path: req.path });
 });
 
