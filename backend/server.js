@@ -24,15 +24,22 @@ app.use(cors({
     const allowed = [
       'http://localhost:5173',
       'http://localhost:3000',
-      process.env.FRONTEND_URL
+      'http://localhost:5173/',
+      process.env.FRONTEND_URL,
+      process.env.FRONTEND_LOCAL
     ].filter(Boolean);
+    
+    // Allow all .vercel.app domains and explicitly configured domains
     if (!origin || allowed.includes(origin) || /\.vercel\.app$/.test(origin)) {
       callback(null, true);
     } else {
+      console.warn(`❌ CORS blocked origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json());
@@ -59,12 +66,34 @@ app.use((req, res, next) => {
 });
 
 // ===== MONGODB CONNECTION =====
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/recruitment-db')
-  .then(() => {
-    console.log('MongoDB Atlas Connected');
-    seedDefaults();
-  })
-  .catch(err => console.error('MongoDB Error:', err));
+const connectDB = async () => {
+  const mongoUri = process.env.MONGO_URI;
+  
+  if (!mongoUri) {
+    console.error('❌ CRITICAL: MONGO_URI environment variable is not set!');
+    console.error('   Please set MONGO_URI in your .env file');
+    console.error('   Format: mongodb+srv://username:password@cluster.mongodb.net/database');
+    process.exit(1);
+  }
+
+  try {
+    await mongoose.connect(mongoUri, {
+      retryWrites: true,
+      w: 'majority',
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
+    });
+    console.log('✅ MongoDB Atlas Connected Successfully');
+    await seedDefaults();
+  } catch (err) {
+    console.error('❌ MongoDB Connection Error:', err.message);
+    console.error('   Retrying in 5 seconds...');
+    setTimeout(connectDB, 5000);
+  }
+};
+
+connectDB();
 
 // ===== SCHEMAS =====
 // Schemas are defined in separate model files
