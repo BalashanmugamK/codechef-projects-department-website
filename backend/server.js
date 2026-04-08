@@ -24,18 +24,25 @@ app.use(cors({
     const allowed = [
       'http://localhost:5173',
       'http://localhost:3000',
-      'http://localhost:5173/',
       process.env.FRONTEND_URL,
       process.env.FRONTEND_LOCAL
     ].filter(Boolean);
-    
-    // Allow all .vercel.app domains and explicitly configured domains
-    if (!origin || allowed.includes(origin) || /\.vercel\.app$/.test(origin)) {
-      callback(null, true);
-    } else {
-      console.warn(`❌ CORS blocked origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
+
+    // Allow requests with no origin (like Postman)
+    if (!origin) return callback(null, true);
+
+    // Allow exact matches
+    if (allowed.includes(origin)) {
+      return callback(null, true);
     }
+
+    // Allow all vercel domains safely
+    if (origin.includes(".vercel.app")) {
+      return callback(null, true);
+    }
+
+    console.warn(`❌ CORS blocked origin: ${origin}`);
+    return callback(new Error("Not allowed by CORS"));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
