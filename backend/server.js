@@ -222,6 +222,10 @@ const seedDefaults = async () => {
 
 // ===== HEALTH CHECK =====
 
+app.get("/", (req, res) => {
+  res.send("Server is alive");
+});
+
 app.get('/api/health', (req, res) => {
   console.log('HEALTH ENDPOINT CALLED');
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
