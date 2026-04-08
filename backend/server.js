@@ -16,7 +16,7 @@ const SystemStatus = require('./models/SystemStatus');
 const Notification = require('./models/Notification');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 
 // ===== CORS CONFIGURATION =====
 app.use(cors({
@@ -222,7 +222,7 @@ const seedDefaults = async () => {
 
 // ===== HEALTH CHECK =====
 
-app.get("/", (req, res) => {
+app.all("/", (req, res) => {
   res.send("Server is alive");
 });
 
